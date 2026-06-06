@@ -1,7 +1,10 @@
-import type { ModalDefinition } from "./types";
+import type { ModalDefinition, RegisteredModalDefinition } from "./types";
 
 export function createModal<TInput, TResult>(
   definition: ModalDefinition<TInput, TResult>,
-): ModalDefinition<TInput, TResult> {
-  return definition;
+): RegisteredModalDefinition<TInput, TResult> {
+  return {
+    ...definition,
+    open: (manager, input) => manager.open(definition, input),
+  };
 }

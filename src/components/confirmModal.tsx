@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { createModal } from "../createModal";
 import {
   DEFAULT_CANCEL_TEXT,
@@ -18,43 +19,36 @@ function ConfirmModal(
   const cancelText = input.cancelText ?? DEFAULT_CANCEL_TEXT;
   const confirmText = input.confirmText ?? DEFAULT_CONFIRM_TEXT;
   const variant = input.variant ?? "default";
+  const titleId = useId();
+
+  const handleCancel = (): void => {
+    close({ confirmed: false, reason: "cancel" });
+  };
+
+  const handleConfirm = (): void => {
+    close({ confirmed: true });
+  };
+
+  const handleDismiss = (): void => {
+    close({ confirmed: false, reason: "dismiss" });
+  };
 
   return (
-    <section
-      aria-label={typeof input.title === "string" ? input.title : undefined}
-      data-variant={variant}
-      role="dialog"
-    >
-      <h2>{input.title}</h2>
+    <section aria-labelledby={titleId} data-variant={variant} role="dialog">
+      <h2 id={titleId}>{input.title}</h2>
 
       {input.description === undefined ? null : <p>{input.description}</p>}
 
-      <button
-        type="button"
-        onClick={() => {
-          close({ confirmed: false, reason: "cancel" });
-        }}
-      >
+      <button type="button" onClick={handleCancel}>
         {cancelText}
       </button>
 
-      <button
-        type="button"
-        onClick={() => {
-          close({ confirmed: true });
-        }}
-      >
+      <button type="button" onClick={handleConfirm}>
         {confirmText}
       </button>
 
       {input.dismissible === false ? null : (
-        <button
-          aria-label="Dismiss"
-          type="button"
-          onClick={() => {
-            close({ confirmed: false, reason: "dismiss" });
-          }}
-        >
+        <button aria-label="Dismiss" type="button" onClick={handleDismiss}>
           Dismiss
         </button>
       )}

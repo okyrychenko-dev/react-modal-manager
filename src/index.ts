@@ -2,6 +2,7 @@ export { confirmModal, ModalViewport } from "./components";
 export { ModalProvider } from "./context";
 export { createModal } from "./createModal";
 export { createModalController } from "./createModalController";
+export { createModalRegistry } from "./createModalRegistry";
 export { ModalDismissError, ModalRejectError } from "./errors";
 export { useModalManager } from "./hooks";
 export type { ModalViewportProps } from "./components";
@@ -19,8 +20,15 @@ export type {
   ModalInstanceId,
   ModalInstanceStatus,
   ModalManager,
+  ModalHandle,
+  ModalRegistry,
+  ModalRegistryDefinitions,
+  ModalRegistryEntry,
+  ModalRegistryInput,
+  ModalRegistryResult,
   ModalRenderer,
   ModalRendererProps,
   ModalRuntimeConfig,
   ModalView,
+  RegisteredModalDefinition,
 } from "./types";

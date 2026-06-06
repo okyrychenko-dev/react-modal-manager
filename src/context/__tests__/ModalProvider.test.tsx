@@ -5,9 +5,11 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
+import { useRef } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createModal } from "../../createModal";
 import { createModalController } from "../../createModalController";
+import { createModalRegistry } from "../../createModalRegistry";
 import { ModalDismissError, ModalRejectError } from "../../errors";
 import { useModalManager } from "../../hooks/useModalManager";
 import { ModalProvider } from "../ModalProvider";
@@ -16,6 +18,7 @@ import type {
   ConfirmModalResult,
   ModalComponentProps,
   ModalController,
+  ModalHandle,
   ModalRendererProps,
 } from "../../types";
 
@@ -24,14 +27,18 @@ interface RenameReportInput {
   reportId: string;
 }
 
-type RenameReportResult =
-  | {
-      status: "cancelled";
-    }
-  | {
-      name: string;
-      status: "renamed";
-    };
+interface RenameReportCanceledResult {
+  status: "cancelled";
+}
+
+interface RenameReportRenamedResult {
+  status: "renamed";
+  name: string;
+}
+
+export type RenameReportResult =
+  | RenameReportCanceledResult
+  | RenameReportRenamedResult;
 
 function RenameReportModal({
   close,
@@ -39,27 +46,22 @@ function RenameReportModal({
   input,
   instanceId,
 }: ModalComponentProps<RenameReportInput, RenameReportResult>) {
+  const handleRename = (): void => {
+    close({ name: `${input.currentName} updated`, status: "renamed" });
+  };
+
+  const handleDismiss = (): void => {
+    dismiss();
+  };
+
   return (
     <section aria-label="Rename report" role="dialog">
       <p>{input.currentName}</p>
       <p>{instanceId}</p>
-      <button
-        onClick={() => {
-          close({
-            name: `${input.currentName} updated`,
-            status: "renamed",
-          });
-        }}
-        type="button"
-      >
+      <button onClick={handleRename} type="button">
         Rename
       </button>
-      <button
-        onClick={() => {
-          dismiss();
-        }}
-        type="button"
-      >
+      <button onClick={handleDismiss} type="button">
         Dismiss
       </button>
     </section>
@@ -71,80 +73,89 @@ const renameReportModal = createModal<RenameReportInput, RenameReportResult>({
   id: "rename-report",
 });
 
-const rejectWithStringModal = createModal<undefined, never>({
-  component: ({ reject }) => (
+function RejectWithStringModal({
+  reject,
+}: ModalComponentProps<undefined, never>) {
+  const handleReject = (): void => {
+    reject("failed");
+  };
+
+  return (
     <section aria-label="Reject with string" role="dialog">
-      <button
-        onClick={() => {
-          reject("failed");
-        }}
-        type="button"
-      >
+      <button onClick={handleReject} type="button">
         Reject string
       </button>
     </section>
-  ),
+  );
+}
+
+const rejectWithStringModal = createModal<undefined, never>({
+  component: RejectWithStringModal,
   id: "reject-string",
 });
 
-const rejectWithErrorModal = createModal<undefined, never>({
-  component: ({ reject }) => (
+function RejectWithErrorModal({
+  reject,
+}: ModalComponentProps<undefined, never>) {
+  const handleReject = (): void => {
+    reject(new Error("Boom"));
+  };
+
+  return (
     <section aria-label="Reject with error" role="dialog">
-      <button
-        onClick={() => {
-          reject(new Error("Boom"));
-        }}
-        type="button"
-      >
+      <button onClick={handleReject} type="button">
         Reject error
       </button>
     </section>
-  ),
+  );
+}
+
+const rejectWithErrorModal = createModal<undefined, never>({
+  component: RejectWithErrorModal,
   id: "reject-error",
 });
 
-const customConfirmModal = createModal<ConfirmModalParams, ConfirmModalResult>({
-  component: ({ close, input }) => (
+function CustomConfirmModal({
+  close,
+  input,
+}: ModalComponentProps<ConfirmModalParams, ConfirmModalResult>) {
+  const handleCancel = (): void => {
+    close({ confirmed: false, reason: "cancel" });
+  };
+
+  return (
     <section aria-label="Custom confirm" role="dialog">
       <h2>{input.title}</h2>
-      <button
-        onClick={() => {
-          close({
-            confirmed: false,
-            reason: "cancel",
-          });
-        }}
-        type="button"
-      >
+      <button onClick={handleCancel} type="button">
         Custom cancel
       </button>
     </section>
-  ),
+  );
+}
+
+const customConfirmModal = createModal<ConfirmModalParams, ConfirmModalResult>({
+  component: CustomConfirmModal,
   id: "custom-confirm",
 });
 
 function OpenRenameModalExample() {
   const modal = useModalManager();
 
+  const handleOpen = (): void => {
+    void modal
+      .open(renameReportModal, { currentName: "Revenue", reportId: "report-1" })
+      .then((result) => {
+        if (result.status === "renamed") {
+          document.body.dataset.result = result.name;
+        }
+      })
+      .catch(() => {
+        document.body.dataset.result = "dismissed";
+      });
+  };
+
   return (
-    <button
-      onClick={() => {
-        void modal
-          .open(renameReportModal, {
-            currentName: "Revenue",
-            reportId: "report-1",
-          })
-          .then((result) => {
-            if (result.status === "renamed") {
-              document.body.dataset.result = result.name;
-            }
-          })
-          .catch(() => {
-            document.body.dataset.result = "dismissed";
-          });
-      }}
-      type="button"
-    >
+    <button onClick={handleOpen} type="button">
       Open rename
     </button>
   );
@@ -153,22 +164,21 @@ function OpenRenameModalExample() {
 function ConfirmExample() {
   const modal = useModalManager();
 
+  const handleAsk = (): void => {
+    void modal
+      .confirm({
+        confirmText: "Delete",
+        description: "This action cannot be undone.",
+        title: "Delete report?",
+        variant: "danger",
+      })
+      .then((result) => {
+        document.body.dataset.confirmed = String(result.confirmed);
+      });
+  };
+
   return (
-    <button
-      onClick={() => {
-        void modal
-          .confirm({
-            confirmText: "Delete",
-            description: "This action cannot be undone.",
-            title: "Delete report?",
-            variant: "danger",
-          })
-          .then((result) => {
-            document.body.dataset.confirmed = String(result.confirmed);
-          });
-      }}
-      type="button"
-    >
+    <button onClick={handleAsk} type="button">
       Ask
     </button>
   );
@@ -177,21 +187,33 @@ function ConfirmExample() {
 function NonDismissibleConfirmExample() {
   const modal = useModalManager();
 
+  const handleAsk = (): void => {
+    void modal
+      .confirm({ dismissible: false, title: "Locked confirm?" })
+      .catch(() => {
+        document.body.dataset.confirmed = "dismissed";
+      });
+  };
+
   return (
-    <button
-      onClick={() => {
-        void modal
-          .confirm({
-            dismissible: false,
-            title: "Locked confirm?",
-          })
-          .catch(() => {
-            document.body.dataset.confirmed = "dismissed";
-          });
-      }}
-      type="button"
-    >
+    <button onClick={handleAsk} type="button">
       Ask locked
+    </button>
+  );
+}
+
+function NonStringTitleConfirmExample() {
+  const modal = useModalManager();
+
+  const handleAsk = (): void => {
+    void modal
+      .confirm({ title: <span>Delete nested title?</span> })
+      .catch(() => undefined);
+  };
+
+  return (
+    <button type="button" onClick={handleAsk}>
+      Ask with nested title
     </button>
   );
 }
@@ -199,22 +221,18 @@ function NonDismissibleConfirmExample() {
 function DismissExample() {
   const modal = useModalManager();
 
+  const handleOpen = (): void => {
+    void modal
+      .open(renameReportModal, { currentName: "Revenue", reportId: "report-1" })
+      .catch((error: unknown) => {
+        if (error instanceof ModalDismissError) {
+          document.body.dataset.dismissReason = error.reason;
+        }
+      });
+  };
+
   return (
-    <button
-      onClick={() => {
-        void modal
-          .open(renameReportModal, {
-            currentName: "Revenue",
-            reportId: "report-1",
-          })
-          .catch((error: unknown) => {
-            if (error instanceof ModalDismissError) {
-              document.body.dataset.dismissReason = error.reason;
-            }
-          });
-      }}
-      type="button"
-    >
+    <button onClick={handleOpen} type="button">
       Open dismissible
     </button>
   );
@@ -223,38 +241,34 @@ function DismissExample() {
 function CloseAllExample() {
   const modal = useModalManager();
 
+  const handleOpenTwo = (): void => {
+    for (const currentName of ["Revenue", "Cost"]) {
+      void modal
+        .open(renameReportModal, {
+          currentName,
+          reportId: currentName,
+        })
+        .catch((error: unknown) => {
+          if (error instanceof ModalDismissError) {
+            const currentCount = Number(
+              document.body.dataset.closeAllCount ?? "0",
+            );
+            document.body.dataset.closeAllCount = String(currentCount + 1);
+          }
+        });
+    }
+  };
+
+  const handleCloseAll = (): void => {
+    modal.closeAll();
+  };
+
   return (
     <>
-      <button
-        onClick={() => {
-          for (const currentName of ["Revenue", "Cost"]) {
-            void modal
-              .open(renameReportModal, {
-                currentName,
-                reportId: currentName,
-              })
-              .catch((error: unknown) => {
-                if (error instanceof ModalDismissError) {
-                  const currentCount = Number(
-                    document.body.dataset.closeAllCount ?? "0",
-                  );
-                  document.body.dataset.closeAllCount = String(
-                    currentCount + 1,
-                  );
-                }
-              });
-          }
-        }}
-        type="button"
-      >
+      <button onClick={handleOpenTwo} type="button">
         Open two
       </button>
-      <button
-        onClick={() => {
-          modal.closeAll();
-        }}
-        type="button"
-      >
+      <button onClick={handleCloseAll} type="button">
         Close all
       </button>
     </>
@@ -264,34 +278,30 @@ function CloseAllExample() {
 function RejectExample() {
   const modal = useModalManager();
 
+  const handleOpenStringReject = (): void => {
+    void modal
+      .open(rejectWithStringModal, undefined)
+      .catch((error: unknown) => {
+        if (error instanceof ModalRejectError) {
+          document.body.dataset.rejectValue = String(error.value);
+        }
+      });
+  };
+
+  const handleOpenErrorReject = (): void => {
+    void modal.open(rejectWithErrorModal, undefined).catch((error: unknown) => {
+      if (error instanceof Error) {
+        document.body.dataset.rejectMessage = error.message;
+      }
+    });
+  };
+
   return (
     <>
-      <button
-        onClick={() => {
-          void modal
-            .open(rejectWithStringModal, undefined)
-            .catch((error: unknown) => {
-              if (error instanceof ModalRejectError) {
-                document.body.dataset.rejectValue = String(error.value);
-              }
-            });
-        }}
-        type="button"
-      >
+      <button onClick={handleOpenStringReject} type="button">
         Open string reject
       </button>
-      <button
-        onClick={() => {
-          void modal
-            .open(rejectWithErrorModal, undefined)
-            .catch((error: unknown) => {
-              if (error instanceof Error) {
-                document.body.dataset.rejectMessage = error.message;
-              }
-            });
-        }}
-        type="button"
-      >
+      <button onClick={handleOpenErrorReject} type="button">
         Open error reject
       </button>
     </>
@@ -300,32 +310,36 @@ function RejectExample() {
 
 function ExternalDismissExample() {
   const modal = useModalManager();
+  const handleRef = useRef<ModalHandle<RenameReportResult> | undefined>(
+    undefined,
+  );
+
+  const handleOpen = (): void => {
+    const handle = modal.open(renameReportModal, {
+      currentName: "Revenue",
+      reportId: "report-1",
+    });
+
+    handleRef.current = handle;
+    document.body.dataset.externalInstanceId = handle.instanceId;
+
+    void handle.catch((error: unknown) => {
+      if (error instanceof ModalDismissError) {
+        document.body.dataset.externalDismissReason = error.reason;
+      }
+    });
+  };
+
+  const handleDismiss = (): void => {
+    handleRef.current?.dismiss();
+  };
 
   return (
     <>
-      <button
-        onClick={() => {
-          void modal
-            .open(renameReportModal, {
-              currentName: "Revenue",
-              reportId: "report-1",
-            })
-            .catch((error: unknown) => {
-              if (error instanceof ModalDismissError) {
-                document.body.dataset.externalDismissReason = error.reason;
-              }
-            });
-        }}
-        type="button"
-      >
+      <button onClick={handleOpen} type="button">
         Open external dismiss
       </button>
-      <button
-        onClick={() => {
-          modal.dismiss("modal-0");
-        }}
-        type="button"
-      >
+      <button onClick={handleDismiss} type="button">
         Dismiss externally
       </button>
     </>
@@ -335,22 +349,18 @@ function ExternalDismissExample() {
 function ProviderUnmountExample() {
   const modal = useModalManager();
 
+  const handleOpen = (): void => {
+    void modal
+      .open(renameReportModal, { currentName: "Revenue", reportId: "report-1" })
+      .catch((error: unknown) => {
+        if (error instanceof ModalDismissError) {
+          document.body.dataset.unmountDismissReason = error.reason;
+        }
+      });
+  };
+
   return (
-    <button
-      onClick={() => {
-        void modal
-          .open(renameReportModal, {
-            currentName: "Revenue",
-            reportId: "report-1",
-          })
-          .catch((error: unknown) => {
-            if (error instanceof ModalDismissError) {
-              document.body.dataset.unmountDismissReason = error.reason;
-            }
-          });
-      }}
-      type="button"
-    >
+    <button type="button" onClick={handleOpen}>
       Open before unmount
     </button>
   );
@@ -390,11 +400,11 @@ function SharedControllerProviders({
       <ModalProvider controller={controller} renderer={FirstRenderer}>
         <div />
       </ModalProvider>
-      {showSecondProvider ? (
+      {showSecondProvider && (
         <ModalProvider controller={controller} renderer={SecondRenderer}>
           <div />
         </ModalProvider>
-      ) : null}
+      )}
     </>
   );
 }
@@ -405,6 +415,7 @@ describe("ModalProvider", () => {
     delete document.body.dataset.confirmed;
     delete document.body.dataset.dismissReason;
     delete document.body.dataset.externalDismissReason;
+    delete document.body.dataset.externalInstanceId;
     delete document.body.dataset.providerOneResult;
     delete document.body.dataset.providerTwoResult;
     delete document.body.dataset.rejectMessage;
@@ -472,6 +483,22 @@ describe("ModalProvider", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("should give the built-in confirm an accessible name for a ReactNode title", () => {
+    render(
+      <ModalProvider>
+        <NonStringTitleConfirmExample />
+      </ModalProvider>,
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Ask with nested title" }),
+    );
+
+    expect(
+      screen.getByRole("dialog", { name: "Delete nested title?" }),
+    ).toBeInTheDocument();
+  });
+
   it("should use a custom confirm modal from provider props", async () => {
     render(
       <ModalProvider confirmModal={customConfirmModal}>
@@ -480,6 +507,7 @@ describe("ModalProvider", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Ask" }));
+
     expect(
       screen.getByRole("dialog", { name: "Custom confirm" }),
     ).toBeInTheDocument();
@@ -514,6 +542,7 @@ describe("ModalProvider", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Open two" }));
+
     expect(
       screen.getAllByRole("dialog", { name: "Rename report" }),
     ).toHaveLength(2);
@@ -523,12 +552,13 @@ describe("ModalProvider", () => {
     await waitFor(() => {
       expect(document.body.dataset.closeAllCount).toBe("2");
     });
+
     expect(
       screen.queryByRole("dialog", { name: "Rename report" }),
     ).not.toBeInTheDocument();
   });
 
-  it("should dismiss an active modal from the modal manager", async () => {
+  it("should dismiss an active modal through its open handle", async () => {
     render(
       <ModalProvider>
         <ExternalDismissExample />
@@ -538,15 +568,18 @@ describe("ModalProvider", () => {
     fireEvent.click(
       screen.getByRole("button", { name: "Open external dismiss" }),
     );
+
     expect(
       screen.getByRole("dialog", { name: "Rename report" }),
     ).toBeInTheDocument();
+    expect(document.body.dataset.externalInstanceId).toBe("modal-0");
 
     fireEvent.click(screen.getByRole("button", { name: "Dismiss externally" }));
 
     await waitFor(() => {
       expect(document.body.dataset.externalDismissReason).toBe("dismiss");
     });
+
     expect(
       screen.queryByRole("dialog", { name: "Rename report" }),
     ).not.toBeInTheDocument();
@@ -606,25 +639,24 @@ describe("ModalProvider", () => {
     function ProviderOneExample() {
       const modal = useModalManager();
 
+      const handleOpen = (): void => {
+        void modal
+          .open(renameReportModal, {
+            currentName: "Provider one",
+            reportId: "provider-one",
+          })
+          .then((result) => {
+            if (result.status === "renamed") {
+              document.body.dataset.providerOneResult = result.name;
+            }
+          })
+          .catch(() => {
+            document.body.dataset.providerOneResult = "dismissed";
+          });
+      };
+
       return (
-        <button
-          onClick={() => {
-            void modal
-              .open(renameReportModal, {
-                currentName: "Provider one",
-                reportId: "provider-one",
-              })
-              .then((result) => {
-                if (result.status === "renamed") {
-                  document.body.dataset.providerOneResult = result.name;
-                }
-              })
-              .catch(() => {
-                document.body.dataset.providerOneResult = "dismissed";
-              });
-          }}
-          type="button"
-        >
+        <button type="button" onClick={handleOpen}>
           Open provider one
         </button>
       );
@@ -633,25 +665,24 @@ describe("ModalProvider", () => {
     function ProviderTwoExample() {
       const modal = useModalManager();
 
+      const handleOpen = (): void => {
+        void modal
+          .open(renameReportModal, {
+            currentName: "Provider two",
+            reportId: "provider-two",
+          })
+          .then((result) => {
+            if (result.status === "renamed") {
+              document.body.dataset.providerTwoResult = result.name;
+            }
+          })
+          .catch(() => {
+            document.body.dataset.providerTwoResult = "dismissed";
+          });
+      };
+
       return (
-        <button
-          onClick={() => {
-            void modal
-              .open(renameReportModal, {
-                currentName: "Provider two",
-                reportId: "provider-two",
-              })
-              .then((result) => {
-                if (result.status === "renamed") {
-                  document.body.dataset.providerTwoResult = result.name;
-                }
-              })
-              .catch(() => {
-                document.body.dataset.providerTwoResult = "dismissed";
-              });
-          }}
-          type="button"
-        >
+        <button type="button" onClick={handleOpen}>
           Open provider two
         </button>
       );
@@ -674,6 +705,7 @@ describe("ModalProvider", () => {
     const modalShells = screen.getAllByRole("dialog", {
       name: "Rename report",
     });
+
     expect(modalShells).toHaveLength(2);
 
     fireEvent.click(screen.getAllByRole("button", { name: "Rename" })[0]);
@@ -683,7 +715,72 @@ describe("ModalProvider", () => {
         "Provider one updated",
       );
     });
+
     expect(document.body.dataset.providerTwoResult).toBeUndefined();
+    expect(screen.getByText("Provider two")).toBeInTheDocument();
+  });
+
+  it("should keep an open handle bound to the provider that created it", async () => {
+    let firstHandle: ModalHandle<RenameReportResult> | undefined;
+
+    function OpenWithHandleExample({
+      currentName,
+      onOpen,
+    }: {
+      currentName: string;
+      onOpen?: (handle: ModalHandle<RenameReportResult>) => void;
+    }) {
+      const modal = useModalManager();
+
+      const handleOpen = (): void => {
+        const handle = modal.open(renameReportModal, {
+          currentName,
+          reportId: currentName,
+        });
+
+        onOpen?.(handle);
+        void handle.catch(() => undefined);
+      };
+
+      return (
+        <button type="button" onClick={handleOpen}>
+          Open {currentName}
+        </button>
+      );
+    }
+
+    render(
+      <>
+        <ModalProvider>
+          <OpenWithHandleExample
+            currentName="Provider one"
+            onOpen={(handle) => {
+              firstHandle = handle;
+            }}
+          />
+        </ModalProvider>
+        <ModalProvider>
+          <OpenWithHandleExample currentName="Provider two" />
+        </ModalProvider>
+      </>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Open Provider one" }));
+    fireEvent.click(screen.getByRole("button", { name: "Open Provider two" }));
+
+    expect(
+      screen.getAllByRole("dialog", { name: "Rename report" }),
+    ).toHaveLength(2);
+    expect(firstHandle?.instanceId).toBe("modal-0");
+
+    firstHandle?.dismiss();
+
+    await waitFor(() => {
+      expect(
+        screen.getAllByRole("dialog", { name: "Rename report" }),
+      ).toHaveLength(1);
+    });
+
     expect(screen.getByText("Provider two")).toBeInTheDocument();
   });
 
@@ -712,6 +809,7 @@ describe("ModalProvider", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Open rename" }));
+
     expect(screen.getByTestId("modal-shell")).toHaveAttribute(
       "data-status",
       "open",
@@ -791,6 +889,84 @@ describe("ModalProvider", () => {
     });
   });
 
+  it("should return a dismissible open handle through a provider-bound controller", async () => {
+    const controller = createModalController();
+
+    render(
+      <ModalProvider controller={controller}>
+        <div />
+      </ModalProvider>,
+    );
+
+    const handle = controller.open(renameReportModal, {
+      currentName: "Revenue",
+      reportId: "report-1",
+    });
+
+    expect(handle.instanceId).toBe("modal-0");
+
+    handle.dismiss();
+
+    await expect(handle).rejects.toMatchObject({
+      reason: "dismiss",
+    });
+  });
+
+  it("should open typed modals through a provider-bound registry", async () => {
+    const registry = createModalRegistry({
+      renameReport: renameReportModal,
+    });
+
+    render(
+      <ModalProvider controller={registry.controller}>
+        <div />
+      </ModalProvider>,
+    );
+
+    expect(registry.isReady()).toBe(true);
+
+    const resultPromise = registry.open("renameReport", {
+      currentName: "Revenue",
+      reportId: "report-1",
+    });
+
+    expect(
+      await screen.findByRole("dialog", { name: "Rename report" }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Rename" }));
+
+    await expect(resultPromise).resolves.toEqual({
+      name: "Revenue updated",
+      status: "renamed",
+    });
+  });
+
+  it("should return a dismissible open handle through a provider-bound registry", async () => {
+    const registry = createModalRegistry({
+      renameReport: renameReportModal,
+    });
+
+    render(
+      <ModalProvider controller={registry.controller}>
+        <div />
+      </ModalProvider>,
+    );
+
+    const handle = registry.open("renameReport", {
+      currentName: "Revenue",
+      reportId: "report-1",
+    });
+
+    expect(handle.instanceId).toBe("modal-0");
+
+    handle.dismiss("close-all");
+
+    await expect(handle).rejects.toMatchObject({
+      reason: "close-all",
+    });
+  });
+
   it("should reject controller calls before it is bound to a provider", () => {
     const controller = createModalController();
 
@@ -821,6 +997,7 @@ describe("ModalProvider", () => {
 
   it("should keep a shared controller bound to the previous provider after the latest provider unmounts", async () => {
     const controller = createModalController();
+
     const { rerender } = render(
       <SharedControllerProviders
         controller={controller}

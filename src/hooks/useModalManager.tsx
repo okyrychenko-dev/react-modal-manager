@@ -7,6 +7,7 @@ import type { ModalInstance } from "../store";
 import type {
   ModalDefinition,
   ModalDismissReason,
+  ModalHandle,
   ModalInstanceId,
   ModalManager,
 } from "../types";
@@ -36,6 +37,7 @@ export function useModalManager(): ModalManager {
       }
 
       store.getState().markModalClosing(instanceId);
+
       settle(instance);
       scheduleRemove(instanceId);
     },
@@ -57,6 +59,7 @@ export function useModalManager(): ModalManager {
   const closeAll = useCallback(
     (reason?: ModalDismissReason) => {
       const dismissReason = reason ?? "close-all";
+
       const openInstanceIds = store
         .getState()
         .modals.filter((modal) => modal.status === "open")
@@ -72,47 +75,64 @@ export function useModalManager(): ModalManager {
   );
 
   const open = useCallback(
-    <TInput, TResult>(modal: ModalDefinition<TInput, TResult>, input: TInput) =>
-      new Promise<TResult>((resolve, reject) => {
-        const storeState = store.getState();
-        const instanceId = storeState.allocateInstanceId();
+    <TInput, TResult>(
+      modal: ModalDefinition<TInput, TResult>,
+      input: TInput,
+    ): ModalHandle<TResult> => {
+      const storeState = store.getState();
+      const instanceId = storeState.allocateInstanceId();
+
+      const result = new Promise<TResult>((resolve, reject) => {
         const Component = modal.component;
 
+        const handleClose = (modalResult: TResult): void => {
+          settleInstance(instanceId, () => {
+            resolve(modalResult);
+          });
+        };
+
+        const handleDismiss = (
+          reason: ModalDismissReason = DEFAULT_DISMISS_REASON,
+        ): void => {
+          settleInstance(instanceId, () => {
+            reject(new ModalDismissError(reason));
+          });
+        };
+
+        const handleReject = (error: unknown): void => {
+          settleInstance(instanceId, () => {
+            reject(
+              error instanceof Error ? error : new ModalRejectError(error),
+            );
+          });
+        };
+
         storeState.addModal({
+          instanceId,
+          status: "open",
           definitionId: modal.id,
+          render: () => (
+            <Component
+              close={handleClose}
+              dismiss={handleDismiss}
+              instanceId={instanceId}
+              input={input}
+              reject={handleReject}
+            />
+          ),
           dismiss: (reason) => {
             reject(new ModalDismissError(reason));
           },
-          instanceId,
-          status: "open",
-          render: () => (
-            <Component
-              close={(result) => {
-                settleInstance(instanceId, () => {
-                  resolve(result);
-                });
-              }}
-              dismiss={(reason = DEFAULT_DISMISS_REASON) => {
-                settleInstance(instanceId, () => {
-                  reject(new ModalDismissError(reason));
-                });
-              }}
-              instanceId={instanceId}
-              input={input}
-              reject={(error) => {
-                settleInstance(instanceId, () => {
-                  reject(
-                    error instanceof Error
-                      ? error
-                      : new ModalRejectError(error),
-                  );
-                });
-              }}
-            />
-          ),
         });
-      }),
-    [settleInstance, store],
+      });
+
+      const dismissHandle = (reason?: ModalDismissReason): void => {
+        dismiss(instanceId, reason);
+      };
+
+      return Object.assign(result, { dismiss: dismissHandle, instanceId });
+    },
+    [dismiss, settleInstance, store],
   );
 
   const confirm = useCallback<ModalManager["confirm"]>(
@@ -121,12 +141,7 @@ export function useModalManager(): ModalManager {
   );
 
   return useMemo(
-    () => ({
-      closeAll,
-      confirm,
-      dismiss,
-      open,
-    }),
+    () => ({ closeAll, confirm, dismiss, open }),
     [closeAll, confirm, dismiss, open],
   );
 }

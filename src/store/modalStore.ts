@@ -31,16 +31,14 @@ export const modalStoreToolkit = createStoreToolkit<ModalStore>(
       allocateInstanceId: () => {
         const { nextInstanceIndex } = get();
 
-        set({
-          nextInstanceIndex: nextInstanceIndex + 1,
-        });
+        set({ nextInstanceIndex: nextInstanceIndex + 1 });
 
         return `modal-${String(nextInstanceIndex)}`;
       },
       dismissAll: (reason) => {
-        for (const modal of get().modals.filter(
-          (item) => item.status === "open",
-        )) {
+        const modals = get().modals.filter((item) => item.status === "open");
+
+        for (const modal of modals) {
           modal.dismiss(reason);
         }
 
@@ -53,14 +51,13 @@ export const modalStoreToolkit = createStoreToolkit<ModalStore>(
       },
       markModalClosing: (instanceId) => {
         set((state) => ({
-          modals: state.modals.map((modal) =>
-            modal.instanceId === instanceId
-              ? {
-                  ...modal,
-                  status: "closing",
-                }
-              : modal,
-          ),
+          modals: state.modals.map((modal) => {
+            if (modal.instanceId === instanceId) {
+              return { ...modal, status: "closing" };
+            }
+
+            return modal;
+          }),
         }));
       },
       scheduleRemove: (instanceId, delayMs) => {
@@ -90,9 +87,7 @@ export const modalStoreToolkit = createStoreToolkit<ModalStore>(
       clearModals: () => {
         get().clearRemoveTimers();
 
-        set({
-          modals: [],
-        });
+        set({ modals: [] });
       },
       clearRemoveTimers: () => {
         for (const timerId of removeTimerIds.values()) {
@@ -103,9 +98,7 @@ export const modalStoreToolkit = createStoreToolkit<ModalStore>(
       },
     };
   },
-  {
-    name: "ModalManager",
-  },
+  { name: "ModalManager" },
 );
 
 export const {

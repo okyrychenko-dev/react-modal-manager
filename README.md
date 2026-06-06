@@ -81,7 +81,7 @@ function ReportsPage() {
 - `useModalManager` exposes the modal controller for descendants
 - `createModal` defines a typed modal component contract
 - `createModalController` creates an optional external controller that can be bound to a provider
-- `modal.open(modalDefinition, input)` returns a promise for the modal result
+- `modal.open(modalDefinition, input)` returns a modal handle that is also a promise for the modal result
 - `modal.confirm(params)` opens the built-in confirmation modal
 - `modal.dismiss(id)` rejects one active modal promise with `ModalDismissError`
 - `modal.closeAll()` rejects all active modal promises and closes the stack
@@ -158,6 +158,22 @@ TypeScript validates both the input passed to `open()` and the result returned f
 
 `modal.open()` rejects with `ModalDismissError` when the modal is dismissed, `closeAll()` is called, or the provider unmounts while the modal is still pending. Use `try/catch` or `.catch()` when a modal can be dismissed without resolving a result.
 
+Keep the handle returned by `open()` when the caller needs to identify or dismiss the specific modal instance later:
+
+```tsx
+const handle = modal.open(renameReportModal, {
+  reportId: report.id,
+  currentName: report.name,
+});
+
+handle.instanceId;
+handle.dismiss();
+
+const result = await handle;
+```
+
+The handle's `dismiss()` function remains bound to the provider that opened the modal.
+
 ## Provider-Bound Controller
 
 Use `createModalController()` when a modal flow must be started outside a React component, for example from a command handler, event bus, store action, or integration layer. The controller is still bound to a concrete `ModalProvider`, so state remains isolated instead of becoming a global singleton.
@@ -197,6 +213,46 @@ export async function renameFromCommand(reportId: string, currentName: string) {
 Calling the controller before its provider is mounted throws an error. Use `controller.isReady()` if an integration can run before the React tree is ready.
 
 If the same controller is bound to multiple mounted providers, calls are routed to the most recently mounted provider. When that provider unmounts, the controller falls back to the previous mounted provider.
+
+## Typed Modal Registry
+
+Use `createModalRegistry()` when code needs to open modals by a stable key while keeping typed input and result contracts. This is useful for command palettes, event buses, action maps, and configuration-driven flows.
+
+```tsx
+import {
+  ModalProvider,
+  createModalRegistry,
+} from "@okyrychenko-dev/react-modal-manager";
+import { renameReportModal } from "./renameReportModal";
+
+export const modalRegistry = createModalRegistry({
+  renameReport: renameReportModal,
+});
+
+function App() {
+  return (
+    <ModalProvider controller={modalRegistry.controller}>
+      <ReportsPage />
+    </ModalProvider>
+  );
+}
+
+export async function renameFromAction(reportId: string, currentName: string) {
+  const result = await modalRegistry.open("renameReport", {
+    reportId,
+    currentName,
+  });
+
+  if (result.status === "renamed") {
+    await renameReport({
+      reportId,
+      name: result.name,
+    });
+  }
+}
+```
+
+The registry key is type-checked, and TypeScript infers the required input and returned result from the modal definition registered under that key.
 
 ## Custom Renderer
 
@@ -255,6 +311,7 @@ Type exports:
 - `ModalInstanceId`
 - `ModalInstanceStatus`
 - `ModalManager`
+- `ModalHandle`
 - `ModalProviderProps`
 - `ModalRenderer`
 - `ModalRendererProps`
@@ -280,7 +337,7 @@ Returns the modal controller from the nearest `ModalProvider`.
 
 **Returns:**
 
-- `open(modal, input): Promise<TResult>`
+- `open(modal, input): ModalHandle<TResult>`
 - `confirm(params): Promise<ConfirmModalResult>`
 - `dismiss(instanceId, reason?): void`
 - `closeAll(reason?): void`
@@ -294,18 +351,35 @@ Creates a typed modal definition.
 - `id: string` - Stable modal definition id
 - `component: ModalComponent<TInput, TResult>` - React component that receives typed input and completion callbacks
 
+### `createModalRegistry(definitions)`
+
+Creates a typed registry for opening modals by key through a provider-bound controller.
+
+**Returns:**
+
+- `controller: ModalController` - Pass this to `<ModalProvider controller={registry.controller}>`
+- `open(key, input): ModalHandle<TResult>`
+- `confirm(params): Promise<ConfirmModalResult>`
+- `dismiss(instanceId, reason?): void`
+- `closeAll(reason?): void`
+- `isReady(): boolean`
+
 ### `createModalController()`
 
 Creates a provider-bound controller for opening typed modal definitions outside `useModalManager()`.
 
 **Returns:**
 
-- `open(modal, input): Promise<TResult>`
+- `open(modal, input): ModalHandle<TResult>`
 - `confirm(params): Promise<ConfirmModalResult>`
 - `dismiss(instanceId, reason?): void`
 - `closeAll(reason?): void`
 - `isReady(): boolean`
 - `bind(manager): VoidFunction` - Low-level binding used by `ModalProvider`; most applications should pass the controller through the `controller` prop instead of calling this directly
+
+**Limitations:**
+
+- A single controller bound to multiple `<ModalProvider>` instances mounted simultaneously uses the most-recently-mounted provider (last-bind-wins). For isolated modal stacks, create separate controllers per provider or use one controller within a single provider tree.
 
 ### `ModalComponentProps<TInput, TResult>`
 

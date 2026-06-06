@@ -11,6 +11,7 @@ export function ModalControllerBinder(
   props: ModalControllerBinderProps,
 ): ReactNode {
   const { controller } = props;
+
   const manager = useModalManager();
 
   useEffect(() => {

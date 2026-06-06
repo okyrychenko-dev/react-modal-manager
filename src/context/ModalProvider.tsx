@@ -29,9 +29,7 @@ export function ModalProvider(props: ModalProviderProps): ReactNode {
     <ModalStoreProvider>
       <ModalRuntimeConfigContext.Provider value={runtimeConfig}>
         {children}
-        {controller === undefined ? null : (
-          <ModalControllerBinder controller={controller} />
-        )}
+        {controller && <ModalControllerBinder controller={controller} />}
         <ModalViewport renderer={renderer} />
         <ModalStoreCleanup />
       </ModalRuntimeConfigContext.Provider>

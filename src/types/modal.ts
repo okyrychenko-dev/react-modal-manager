@@ -60,11 +60,16 @@ export type ConfirmModalResult =
   | ConfirmationModalConfirmedResult
   | ConfirmationModalRejectedResult;
 
+export interface ModalHandle<TResult> extends Promise<TResult> {
+  instanceId: ModalInstanceId;
+  dismiss: (reason?: ModalDismissReason) => void;
+}
+
 export interface ModalManager {
   open: <TInput, TResult>(
     modal: ModalDefinition<TInput, TResult>,
     input: TInput,
-  ) => Promise<TResult>;
+  ) => ModalHandle<TResult>;
   confirm: (params: ConfirmModalParams) => Promise<ConfirmModalResult>;
   dismiss: (instanceId: ModalInstanceId, reason?: ModalDismissReason) => void;
   closeAll: (reason?: ModalDismissReason) => void;
@@ -73,6 +78,41 @@ export interface ModalManager {
 export interface ModalController extends ModalManager {
   bind: (manager: ModalManager) => VoidFunction;
   isReady: () => boolean;
+}
+
+export interface RegisteredModalDefinition<
+  TInput,
+  TResult,
+> extends ModalDefinition<TInput, TResult> {
+  open(manager: ModalManager, input: TInput): ModalHandle<TResult>;
+}
+
+export interface ModalRegistryEntry<TInput, TResult> {
+  open(manager: ModalManager, input: TInput): ModalHandle<TResult>;
+}
+
+export type ModalRegistryDefinitions = Readonly<
+  Record<string, ModalRegistryEntry<unknown, unknown>>
+>;
+
+export type ModalRegistryInput<
+  TDefinition extends ModalRegistryEntry<unknown, unknown>,
+> = Parameters<TDefinition["open"]>[1];
+
+export type ModalRegistryResult<
+  TDefinition extends ModalRegistryEntry<unknown, unknown>,
+> = Awaited<ReturnType<TDefinition["open"]>>;
+
+export interface ModalRegistry<TDefinitions extends ModalRegistryDefinitions> {
+  readonly controller: ModalController;
+  closeAll: ModalController["closeAll"];
+  confirm: ModalController["confirm"];
+  dismiss: ModalController["dismiss"];
+  isReady: ModalController["isReady"];
+  open: <TKey extends keyof TDefinitions & string>(
+    key: TKey,
+    input: ModalRegistryInput<TDefinitions[TKey]>,
+  ) => ReturnType<TDefinitions[TKey]["open"]>;
 }
 
 export interface ModalRuntimeConfig {

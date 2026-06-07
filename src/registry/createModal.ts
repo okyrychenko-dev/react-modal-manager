@@ -3,14 +3,8 @@ import type {
   RegisteredModalDefinition,
 } from "./createModal.types";
 
-let nextModalDefinitionIndex = 0;
-
 function createGeneratedModalId(): string {
-  const id = `modal-definition-${String(nextModalDefinitionIndex)}`;
-
-  nextModalDefinitionIndex += 1;
-
-  return id;
+  return `modal-definition-${crypto.randomUUID()}`;
 }
 
 export function createModal<TInput, TResult>(

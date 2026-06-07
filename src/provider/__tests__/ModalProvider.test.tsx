@@ -415,7 +415,7 @@ describe("ModalProvider", () => {
       "modal-0",
     );
     expect(screen.getByTestId("modal-shell").dataset.definitionId).toMatch(
-      /^modal-definition-\d+$/,
+      /^modal-definition-.+$/,
     );
   });
 

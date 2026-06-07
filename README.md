@@ -280,7 +280,14 @@ if (result.confirmed) {
 }
 ```
 
-The bundled `confirmModal` is a **minimal reference implementation** (semantic `role="dialog"` markup, no design system, no focus-trap). It is ideal for tests and simple flows; production apps usually supply their own confirm modal — see [Custom Confirm Modal](#custom-confirm-modal).
+The bundled `confirmModal` is an **accessible, unstyled reference implementation**:
+
+- `role="dialog"` with `aria-modal="true"`, `aria-labelledby` (title) and `aria-describedby` (description)
+- the confirm button receives focus on open (the cancel button for `variant: "danger"`, so a stray Enter never confirms a destructive action), and focus returns to the trigger on close
+- `Tab` / `Shift+Tab` are trapped within the dialog
+- `Escape` dismisses it (unless `dismissible: false`)
+
+It ships no styling and no portal — those belong to your `renderer` or design system. It is ideal for tests and simple flows; production apps usually supply their own confirm modal — see [Custom Confirm Modal](#custom-confirm-modal).
 
 ## Custom Renderer
 

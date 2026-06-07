@@ -390,7 +390,9 @@ describe("ModalProvider", () => {
     ).toHaveLength(2);
     expect(firstHandle?.instanceId).toBe("modal-0");
 
-    firstHandle?.dismiss();
+    act(() => {
+      firstHandle?.dismiss();
+    });
 
     await waitFor(() => {
       expect(
@@ -494,9 +496,13 @@ describe("ModalProvider", () => {
 
     expect(registry.isReady()).toBe(true);
 
-    const resultPromise = registry.open("renameReport", {
-      currentName: "Revenue",
-      reportId: "report-1",
+    let resultPromise!: ModalHandle<RenameReportResult>;
+
+    act(() => {
+      resultPromise = registry.open("renameReport", {
+        currentName: "Revenue",
+        reportId: "report-1",
+      });
     });
 
     expect(
@@ -522,14 +528,20 @@ describe("ModalProvider", () => {
       </ModalProvider>,
     );
 
-    const handle = registry.open("renameReport", {
-      currentName: "Revenue",
-      reportId: "report-1",
+    let handle!: ModalHandle<RenameReportResult>;
+
+    act(() => {
+      handle = registry.open("renameReport", {
+        currentName: "Revenue",
+        reportId: "report-1",
+      });
     });
 
     expect(handle.instanceId).toBe("modal-0");
 
-    handle.dismiss("close-all");
+    act(() => {
+      handle.dismiss("close-all");
+    });
 
     await expect(handle).rejects.toMatchObject({
       reason: "close-all",
@@ -571,9 +583,13 @@ describe("ModalProvider", () => {
       <SharedRegistryProviders registry={registry} showSecondProvider={true} />,
     );
 
-    const secondResult = registry.open("renameReport", {
-      currentName: "Second",
-      reportId: "report-2",
+    let secondResult!: ModalHandle<RenameReportResult>;
+
+    act(() => {
+      secondResult = registry.open("renameReport", {
+        currentName: "Second",
+        reportId: "report-2",
+      });
     });
 
     expect(await screen.findByTestId("second-modal-shell")).toBeInTheDocument();
@@ -594,9 +610,13 @@ describe("ModalProvider", () => {
 
     expect(registry.isReady()).toBe(true);
 
-    const firstResult = registry.open("renameReport", {
-      currentName: "First",
-      reportId: "report-1",
+    let firstResult!: ModalHandle<RenameReportResult>;
+
+    act(() => {
+      firstResult = registry.open("renameReport", {
+        currentName: "First",
+        reportId: "report-1",
+      });
     });
 
     expect(await screen.findByTestId("first-modal-shell")).toBeInTheDocument();

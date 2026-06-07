@@ -60,9 +60,6 @@
     "react": "^18.0.0 || ^19.0.0",
     "zustand": "^5.0.0"
   },
-  "dependencies": {
-    "@okyrychenko-dev/react-zustand-toolkit": "^0.4.1"
-  },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
     "@storybook/addon-docs": "10.2.16",

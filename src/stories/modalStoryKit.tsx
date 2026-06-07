@@ -7,7 +7,6 @@ import type {
   ConfirmModalParams,
   ConfirmModalResult,
   ModalComponentProps,
-  ModalDefinition,
   ModalRendererProps,
 } from "../index";
 
@@ -232,15 +231,19 @@ export const customConfirmModal = createModal<
   ConfirmModalResult
 >({ id: "custom-confirm", component: CustomConfirmModal });
 
-export const withModalProvider: Decorator = (Story, context) => {
-  const { confirmModal } = context.parameters as {
-    confirmModal?: ModalDefinition<ConfirmModalParams, ConfirmModalResult>;
-  };
+export const withModalProvider: Decorator = (Story) => {
+  return (
+    <ModalProvider closeDelayMs={220} renderer={StoryRenderer}>
+      <Story />
+    </ModalProvider>
+  );
+};
 
+export const withCustomConfirmModalProvider: Decorator = (Story) => {
   return (
     <ModalProvider
       closeDelayMs={220}
-      confirmModal={confirmModal}
+      confirmModal={customConfirmModal}
       renderer={StoryRenderer}
     >
       <Story />

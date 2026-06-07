@@ -4,7 +4,7 @@ import {
   ModalDismissError,
   ModalProvider,
   ModalRejectError,
-  createModalController,
+  createModalRegistry,
   useModalManager,
 } from "../index";
 import {
@@ -14,10 +14,10 @@ import {
   renameReportModal,
   styles,
   withModalProvider,
-} from "../stories/modalStoryKit";
+} from "../stories";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { ReactElement } from "react";
-import type { RenameReportResult } from "../stories/modalStoryKit";
+import type { RenameReportResult } from "../stories";
 
 function describeRenameResult(result: RenameReportResult): string {
   if (result.status === "renamed") {
@@ -222,13 +222,16 @@ function ProviderIsolationDemo(): ReactElement {
   );
 }
 
-function ProviderBoundControllerDemo(): ReactElement {
-  const controller = useMemo(() => createModalController(), []);
+function ProviderBoundRegistryDemo(): ReactElement {
+  const registry = useMemo(
+    () => createModalRegistry({ renameReport: renameReportModal }),
+    [],
+  );
   const [result, setResult] = useState("No external command has run yet");
 
   const handleOpen = (): void => {
-    void controller
-      .open(renameReportModal, {
+    void registry
+      .open("renameReport", {
         currentName: "Controller report",
         reportId: "controller-report",
       })
@@ -243,9 +246,9 @@ function ProviderBoundControllerDemo(): ReactElement {
   return (
     <div className={styles.shell}>
       <StoryLayout
-        description="A provider-bound controller can open typed modals from code that does not call useModalManager."
+        description="A provider-bound registry can open typed modals from code that does not call useModalManager."
         results={[{ label: "External command", value: result }]}
-        title="Provider-Bound Controller"
+        title="Provider-Bound Registry"
       >
         <div className={styles.buttonRow}>
           <button
@@ -259,7 +262,7 @@ function ProviderBoundControllerDemo(): ReactElement {
       </StoryLayout>
       <ModalProvider
         closeDelayMs={220}
-        controller={controller}
+        registry={registry}
         renderer={StoryRenderer}
       >
         {null}
@@ -284,8 +287,8 @@ function renderProviderIsolation(): ReactElement {
   return <ProviderIsolationDemo />;
 }
 
-function renderProviderBoundController(): ReactElement {
-  return <ProviderBoundControllerDemo />;
+function renderProviderBoundRegistry(): ReactElement {
+  return <ProviderBoundRegistryDemo />;
 }
 
 const meta: Meta = {
@@ -342,6 +345,6 @@ export const ProviderIsolation: Story = {
   render: renderProviderIsolation,
 };
 
-export const ProviderBoundController: Story = {
-  render: renderProviderBoundController,
+export const ProviderBoundRegistry: Story = {
+  render: renderProviderBoundRegistry,
 };

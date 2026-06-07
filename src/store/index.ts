@@ -1,9 +1,5 @@
-export {
-  modalStoreToolkit,
-  ModalStoreProvider,
-  useModalStore,
-  useModalStoreApi,
-} from "./modalStore";
+export { useModalStore, useModalStoreApi } from "./useModalStore";
+export { ModalStoreProvider } from "./ModalStoreProvider";
 export { useModals } from "./modalStore.selectors";
 export type {
   ModalInstance,

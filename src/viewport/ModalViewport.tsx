@@ -1,13 +1,12 @@
 import { useModals } from "../store";
 import type { ReactNode } from "react";
-import type { ModalRendererProps } from "../types";
+import type {
+  ModalRendererProps,
+  ModalViewportProps,
+} from "./ModalViewport.types";
 
 function DefaultModalRenderer({ children }: ModalRendererProps): ReactNode {
   return <>{children}</>;
-}
-
-export interface ModalViewportProps {
-  renderer?: (props: ModalRendererProps) => ReactNode;
 }
 
 export function ModalViewport({

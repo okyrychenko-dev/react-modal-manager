@@ -6,10 +6,10 @@ import {
   renameReportModal,
   styles,
   withModalProvider,
-} from "../stories/modalStoryKit";
+} from "../stories";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { ReactElement } from "react";
-import type { RenameReportResult } from "../stories/modalStoryKit";
+import type { RenameReportResult } from "../stories";
 
 function describeRendererResult(result: RenameReportResult): string {
   if (result.status === "renamed") {

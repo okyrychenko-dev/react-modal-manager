@@ -7,7 +7,7 @@ export default defineConfig({
   splitting: false,
   sourcemap: true,
   clean: true,
-  external: ["@okyrychenko-dev/react-zustand-toolkit", "react", "zustand"],
+  external: ["react", "zustand"],
   treeshake: true,
   minify: false,
 });

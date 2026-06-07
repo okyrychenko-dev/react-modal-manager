@@ -1,11 +1,12 @@
 import { createModalController } from "./createModalController";
 import { MODAL_REGISTRY_UNKNOWN_KEY_ERROR } from "./createModalRegistry.constants";
+import { bindModalRegistry } from "./modalRegistryBinding";
+import type { ModalHandle } from "../hooks";
 import type {
-  ModalHandle,
   ModalRegistry,
   ModalRegistryDefinitions,
   ModalRegistryInput,
-} from "./types";
+} from "./createModalRegistry.types";
 
 export function createModalRegistry<
   const TDefinitions extends ModalRegistryDefinitions,
@@ -24,12 +25,15 @@ export function createModalRegistry<
     return definitions[key].open(controller, input);
   }
 
-  return {
-    controller,
+  const registry: ModalRegistry<TDefinitions> = {
     closeAll: controller.closeAll,
     confirm: controller.confirm,
     dismiss: controller.dismiss,
     isReady: controller.isReady,
     open,
   };
+
+  bindModalRegistry(registry, controller);
+
+  return registry;
 }

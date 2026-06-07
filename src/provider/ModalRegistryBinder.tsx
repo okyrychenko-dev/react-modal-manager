@@ -1,14 +1,14 @@
 import { useEffect } from "react";
 import { useModalManager } from "../hooks";
 import type { ReactNode } from "react";
-import type { ModalController } from "../types";
+import type { ModalController } from "../registry";
 
-interface ModalControllerBinderProps {
+interface ModalRegistryBinderProps {
   controller: ModalController;
 }
 
-export function ModalControllerBinder(
-  props: ModalControllerBinderProps,
+export function ModalRegistryBinder(
+  props: ModalRegistryBinderProps,
 ): ReactNode {
   const { controller } = props;
 

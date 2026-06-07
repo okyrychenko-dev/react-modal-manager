@@ -1,34 +1,38 @@
-export { confirmModal, ModalViewport } from "./components";
-export { ModalProvider } from "./context";
-export { createModal } from "./createModal";
-export { createModalController } from "./createModalController";
-export { createModalRegistry } from "./createModalRegistry";
-export { ModalDismissError, ModalRejectError } from "./errors";
-export { useModalManager } from "./hooks";
-export type { ModalViewportProps } from "./components";
-export type { ModalProviderProps } from "./context";
+export { confirmModal } from "./confirm";
 export type {
   ConfirmModalParams,
   ConfirmModalResult,
   ConfirmModalVariant,
-  ModalComponent,
-  ModalComponentProps,
-  ModalController,
-  ModalDefinition,
-  ModalDismissReason,
-  ModalId,
-  ModalInstanceId,
-  ModalInstanceStatus,
-  ModalManager,
-  ModalHandle,
+} from "./confirm";
+export { ModalDismissError, ModalRejectError } from "./errors";
+export { useModalManager } from "./hooks";
+export type { ModalHandle, ModalManager } from "./hooks";
+export { ModalProvider } from "./provider";
+export type { ModalProviderProps } from "./provider";
+export { createModal, createModalRegistry } from "./registry";
+export type {
+  ModalOptions,
   ModalRegistry,
   ModalRegistryDefinitions,
   ModalRegistryEntry,
   ModalRegistryInput,
   ModalRegistryResult,
+  RegisteredModalDefinition,
+} from "./registry";
+export type { ModalRuntimeConfig } from "./runtime";
+export { ModalViewport } from "./viewport";
+export type {
   ModalRenderer,
   ModalRendererProps,
-  ModalRuntimeConfig,
   ModalView,
-  RegisteredModalDefinition,
+  ModalViewportProps,
+} from "./viewport";
+export type {
+  ModalComponent,
+  ModalComponentProps,
+  ModalDefinition,
+  ModalDismissReason,
+  ModalId,
+  ModalInstanceId,
+  ModalInstanceStatus,
 } from "./types";

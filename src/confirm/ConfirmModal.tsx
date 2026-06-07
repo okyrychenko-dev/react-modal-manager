@@ -1,17 +1,16 @@
 import { useId } from "react";
-import { createModal } from "../createModal";
 import {
   DEFAULT_CANCEL_TEXT,
   DEFAULT_CONFIRM_TEXT,
-} from "./confirmModal.constants";
+} from "./ConfirmModal.constants";
 import type { ReactNode } from "react";
+import type { ModalComponentProps } from "../types";
 import type {
   ConfirmModalParams,
   ConfirmModalResult,
-  ModalComponentProps,
-} from "../types";
+} from "./ConfirmModal.types";
 
-function ConfirmModal(
+export function ConfirmModal(
   props: ModalComponentProps<ConfirmModalParams, ConfirmModalResult>,
 ): ReactNode {
   const { close, input } = props;
@@ -55,10 +54,3 @@ function ConfirmModal(
     </section>
   );
 }
-
-export const confirmModal = createModal<ConfirmModalParams, ConfirmModalResult>(
-  {
-    id: "confirm",
-    component: ConfirmModal,
-  },
-);

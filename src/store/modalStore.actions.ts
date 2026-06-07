@@ -1,0 +1,101 @@
+import type { StoreApi } from "zustand";
+import type { ModalInstanceId } from "../types";
+import type { ModalStore, ModalStoreActions } from "./modalStore.types";
+
+type SetModalStore = StoreApi<ModalStore>["setState"];
+type GetModalStore = StoreApi<ModalStore>["getState"];
+
+export function createModalStoreActions(
+  set: SetModalStore,
+  get: GetModalStore,
+): ModalStoreActions {
+  const removeTimerIds = new Map<
+    ModalInstanceId,
+    ReturnType<typeof globalThis.setTimeout>
+  >();
+
+  const clearRemoveTimer = (instanceId: ModalInstanceId): void => {
+    const timerId = removeTimerIds.get(instanceId);
+
+    if (timerId === undefined) {
+      return;
+    }
+
+    globalThis.clearTimeout(timerId);
+    removeTimerIds.delete(instanceId);
+  };
+
+  return {
+    addModal: (modal) => {
+      set((state) => ({
+        modals: [...state.modals, { ...modal, status: "open" }],
+      }));
+    },
+    allocateInstanceId: () => {
+      const { nextInstanceIndex } = get();
+
+      set({ nextInstanceIndex: nextInstanceIndex + 1 });
+
+      return `modal-${String(nextInstanceIndex)}`;
+    },
+    dismissAll: (reason) => {
+      const modals = get().modals.filter((item) => item.status === "open");
+
+      for (const modal of modals) {
+        modal.dismiss(reason);
+      }
+
+      set((state) => ({
+        modals: state.modals.map((modal) => ({
+          ...modal,
+          status: "closing",
+        })),
+      }));
+    },
+    markModalClosing: (instanceId) => {
+      set((state) => ({
+        modals: state.modals.map((modal) => {
+          if (modal.instanceId === instanceId) {
+            return { ...modal, status: "closing" };
+          }
+
+          return modal;
+        }),
+      }));
+    },
+    scheduleRemove: (instanceId, delayMs) => {
+      clearRemoveTimer(instanceId);
+
+      if (delayMs <= 0) {
+        get().removeModal(instanceId);
+        return;
+      }
+
+      const timerId = globalThis.setTimeout(() => {
+        removeTimerIds.delete(instanceId);
+        get().removeModal(instanceId);
+      }, delayMs);
+
+      removeTimerIds.set(instanceId, timerId);
+    },
+    removeModal: (instanceId) => {
+      clearRemoveTimer(instanceId);
+
+      set((state) => ({
+        modals: state.modals.filter((modal) => modal.instanceId !== instanceId),
+      }));
+    },
+    clearModals: () => {
+      get().clearRemoveTimers();
+
+      set({ modals: [] });
+    },
+    clearRemoveTimers: () => {
+      for (const timerId of removeTimerIds.values()) {
+        globalThis.clearTimeout(timerId);
+      }
+
+      removeTimerIds.clear();
+    },
+  };
+}

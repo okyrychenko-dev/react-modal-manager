@@ -3,10 +3,10 @@ import { expect, userEvent, within } from "storybook/test";
 import { useModalManager } from "../index";
 import {
   StoryLayout,
-  customConfirmModal,
   styles,
+  withCustomConfirmModalProvider,
   withModalProvider,
-} from "../stories/modalStoryKit";
+} from "../stories";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { ReactElement } from "react";
 import type { ConfirmModalParams, ConfirmModalResult } from "../index";
@@ -150,9 +150,7 @@ export const CustomConfirmOverride: Story = {
   args: {
     title: "Use custom confirm?",
   },
-  parameters: {
-    confirmModal: customConfirmModal,
-  },
+  decorators: [withCustomConfirmModalProvider],
 };
 
 export const BuiltInConfirmInteraction: Story = {

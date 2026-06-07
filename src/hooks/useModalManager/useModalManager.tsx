@@ -1,16 +1,15 @@
 import { useCallback, useMemo } from "react";
-import { ModalDismissError, ModalRejectError } from "../errors";
-import { useModalStoreApi } from "../store";
+import { ModalDismissError, ModalRejectError } from "../../errors";
+import { useModalStoreApi } from "../../store";
+import { useModalRuntimeConfig } from "../useModalRuntimeConfig";
 import { DEFAULT_DISMISS_REASON } from "./useModalManager.constants";
-import { useModalRuntimeConfig } from "./useModalRuntimeConfig";
-import type { ModalInstance } from "../store";
+import type { ModalInstance } from "../../store";
 import type {
   ModalDefinition,
   ModalDismissReason,
-  ModalHandle,
   ModalInstanceId,
-  ModalManager,
-} from "../types";
+} from "../../types";
+import type { ModalHandle, ModalManager } from "./useModalManager.types";
 
 export function useModalManager(): ModalManager {
   const store = useModalStoreApi();

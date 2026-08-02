@@ -32,6 +32,7 @@
     "format:check": "prettier --check \"src/**/*.{ts,tsx}\"",
     "test": "vitest",
     "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },
@@ -71,7 +72,7 @@
     "@types/react": "^19.2.5",
     "@typescript-eslint/eslint-plugin": "^8.46.4",
     "@typescript-eslint/parser": "^8.46.4",
-    "@vitest/coverage-v8": "^4.0.9",
+    "@vitest/coverage-v8": "^4.1.10",
     "eslint": "^9.39.1",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-import": "^2.32.0",
@@ -86,7 +87,10 @@
     "tsup": "^8.5.1",
     "typescript": "^5.3.3",
     "typescript-eslint": "^8.46.4",
-    "vitest": "^4.0.9",
+    "vitest": "^4.1.10",
     "zustand": "^5.0.8"
+  },
+  "allowScripts": {
+    "esbuild@0.27.7": true
   }
 }

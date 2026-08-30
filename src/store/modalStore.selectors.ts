@@ -1,5 +1,5 @@
 import { useModalStore } from "./useModalStore";
-import type { ModalInstance } from "./modalStore.types";
+import type { ModalLifecycleInstance } from "../lifecycle";
 
-export const useModals = (): Array<ModalInstance> =>
+export const useModals = (): Array<ModalLifecycleInstance> =>
   useModalStore((state) => state.modals);

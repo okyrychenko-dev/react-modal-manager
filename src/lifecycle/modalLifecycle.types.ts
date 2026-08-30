@@ -32,6 +32,7 @@ export interface ModalLifecycle {
     modal: ModalDefinition<TInput, TResult>,
     input: TInput,
   ) => ModalLifecycleHandle<TResult>;
+  setCloseDelayMs: (closeDelayMs: number) => void;
 }
 
 export interface CreateModalLifecycleOptions {

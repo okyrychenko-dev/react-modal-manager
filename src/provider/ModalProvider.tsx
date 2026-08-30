@@ -5,7 +5,6 @@ import { ModalRuntimeConfigContext } from "../runtime";
 import { ModalStoreProvider } from "../store";
 import { ModalViewport } from "../viewport";
 import { ModalRegistryBinder } from "./ModalRegistryBinder";
-import { ModalStoreCleanup } from "./ModalStoreCleanup";
 import type { ReactNode } from "react";
 import type { ModalRuntimeConfig } from "../runtime";
 import type { ModalProviderProps } from "./ModalProvider.types";
@@ -33,14 +32,13 @@ export function ModalProvider(props: ModalProviderProps): ReactNode {
   );
 
   return (
-    <ModalStoreProvider>
+    <ModalStoreProvider closeDelayMs={closeDelayMs}>
       <ModalRuntimeConfigContext.Provider value={runtimeConfig}>
         {children}
         {registryController && (
           <ModalRegistryBinder controller={registryController} />
         )}
         <ModalViewport renderer={renderer} />
-        <ModalStoreCleanup />
       </ModalRuntimeConfigContext.Provider>
     </ModalStoreProvider>
   );

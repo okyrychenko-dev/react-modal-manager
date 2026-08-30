@@ -36,7 +36,7 @@ const app = (
 ## Why This Library
 
 - **Typed results, not `any`.** `open<TInput, TResult>(def, input)` returns a `Promise<TResult>`. Both sides of the call are checked.
-- **Per-provider isolation.** Each `ModalProvider` owns its own Zustand store — no global singleton, so subtrees and tests never leak modal state into each other.
+- **Per-provider isolation.** Each `ModalProvider` owns an independent lifecycle and render-state projection — no global singleton, so subtrees and tests never leak modal state into each other.
 - **Open from non-React code.** A typed registry (or controller) lets event buses, command palettes, and action maps open modals while keeping full inference.
 - **UI-agnostic core.** A single `renderer` boundary lets you plug in portals, overlays, animations, or any design system. The core never prescribes DOM or styling.
 - **Built-in `confirm()`** with a typed, discriminated-union result — useful from day one, replaceable when you need your own design.
@@ -319,7 +319,7 @@ The core prescribes no DOM structure, focus management, or styling — adapters 
 
 ### Next.js App Router (SSR)
 
-The store is created lazily **per provider** (`useState(createModalStore)`) and lives in React context, so there is no module-level singleton and no shared state across requests — it is safe for the App Router and React Server Components. The provider uses hooks, so it must run in a Client Component. Wrap it once and render that wrapper from your server layout.
+The lifecycle and its Zustand render-state projection are created lazily **per provider** and live in React context. The lifecycle owns opening, settlement, dismissal, delayed removal, and disposal; Zustand only publishes modal state for rendering. There is no module-level singleton or shared state across requests, so the provider is safe for the App Router and React Server Components. The provider uses hooks, so it must run in a Client Component. Wrap it once and render that wrapper from your server layout.
 
 ```tsx
 // app/providers/modal-provider.tsx

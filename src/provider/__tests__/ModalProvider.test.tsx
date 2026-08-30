@@ -464,6 +464,35 @@ describe("ModalProvider", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("should use an updated closeDelayMs for subsequently opened modals", async () => {
+    vi.useFakeTimers();
+    const { rerender } = render(
+      <ModalProvider closeDelayMs={0} renderer={TestRenderer}>
+        <OpenRenameModalExample />
+      </ModalProvider>,
+    );
+
+    rerender(
+      <ModalProvider closeDelayMs={200} renderer={TestRenderer}>
+        <OpenRenameModalExample />
+      </ModalProvider>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Open rename" }));
+    fireEvent.click(screen.getByRole("button", { name: "Rename" }));
+
+    expect(screen.getByTestId("modal-shell")).toHaveAttribute(
+      "data-status",
+      "closing",
+    );
+
+    await act(async () => {
+      vi.advanceTimersByTime(200);
+    });
+
+    expect(screen.queryByTestId("modal-shell")).not.toBeInTheDocument();
+  });
+
   it("should clear scheduled modal removal timers when provider unmounts", () => {
     vi.useFakeTimers();
 
@@ -635,7 +664,7 @@ describe("ModalProvider", () => {
       .mockImplementation(() => undefined);
 
     expect(() => render(<OpenRenameModalExample />)).toThrow(
-      "Modal store must be used within ModalProvider",
+      "Modal lifecycle must be used within ModalProvider",
     );
 
     consoleError.mockRestore();

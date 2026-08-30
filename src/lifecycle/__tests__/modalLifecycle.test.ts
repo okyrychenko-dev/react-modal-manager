@@ -215,14 +215,23 @@ describe("modal lifecycle", () => {
   it("should reject a re-entrant open from terminal disposal publication", async () => {
     const lifecycleReference: { current?: ModalLifecycle } = {};
     let reentrantOutcome: Promise<unknown> | undefined;
+    let attemptedReentrantOpen = false;
+    const reentrantPublications: Array<Array<string>> = [];
 
     const lifecycle = createModalLifecycle({
       closeDelayMs: 0,
       onStateChange: (state) => {
+        if (attemptedReentrantOpen) {
+          reentrantPublications.push(
+            state.instances.map((instance) => instance.status),
+          );
+        }
+
         if (state.instances.length !== 0) {
           return;
         }
 
+        attemptedReentrantOpen = true;
         const handle = lifecycleReference.current?.open(testModal, {
           message: "Too late",
         });
@@ -241,6 +250,7 @@ describe("modal lifecycle", () => {
     await expect(reentrantOutcome).resolves.toMatchObject({
       reason: "provider-unmount",
     });
+    expect(reentrantPublications).not.toContainEqual(["open"]);
     expect(lifecycle.getState().instances).toEqual([]);
   });
 
@@ -274,6 +284,25 @@ describe("modal lifecycle", () => {
     fireEvent.click(screen.getByRole("button", { name: "Reject with Error" }));
 
     await expect(preservedOutcome).resolves.toBe(expectedError);
+  });
+
+  it("should ignore every competing settlement after rejection", async () => {
+    const lifecycle = createModalLifecycle({ closeDelayMs: 100 });
+    const result = lifecycle.open(testModal, { message: "Rejected" });
+    const outcome = result.catch((error: unknown) => error);
+    const [instance] = lifecycle.getState().instances;
+
+    render(instance.render());
+    fireEvent.click(screen.getByRole("button", { name: "Reject modal" }));
+    fireEvent.click(screen.getByRole("button", { name: "Close modal" }));
+    fireEvent.click(screen.getByRole("button", { name: "Dismiss modal" }));
+    result.dismiss("close-all");
+    lifecycle.dismiss(result.instanceId, "provider-unmount");
+    lifecycle.closeAll();
+    lifecycle.dispose();
+
+    await expect(outcome).resolves.toBeInstanceOf(ModalRejectError);
+    await expect(outcome).resolves.toMatchObject({ value: "invalid" });
   });
 
   it("should use the default close-all reason", async () => {

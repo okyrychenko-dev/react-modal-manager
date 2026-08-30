@@ -18,6 +18,8 @@ export function createModalLifecycle(
   let nextInstanceIndex = 0;
   let instances: Array<ModalLifecycleInstance> = [];
   let disposed = false;
+  let closeDelayMs = options.closeDelayMs;
+
   const removalTimers = new Map<
     ModalInstanceId,
     ReturnType<typeof globalThis.setTimeout>
@@ -73,14 +75,14 @@ export function createModalLifecycle(
     publishState();
     settle();
 
-    if (options.closeDelayMs <= 0) {
+    if (closeDelayMs <= 0) {
       removeInstance(instanceId);
       return;
     }
 
     const timer = globalThis.setTimeout(() => {
       removeInstance(instanceId);
-    }, options.closeDelayMs);
+    }, closeDelayMs);
     removalTimers.set(instanceId, timer);
   };
 
@@ -103,6 +105,7 @@ export function createModalLifecycle(
         return;
       }
 
+      disposed = true;
       dismissOpenInstances("provider-unmount");
 
       for (const timer of removalTimers.values()) {
@@ -112,7 +115,6 @@ export function createModalLifecycle(
       removalTimers.clear();
       dismissers.clear();
       instances = [];
-      disposed = true;
       options.onStateChange?.({ instances: [] });
     },
     dismiss: (instanceId, reason) => {
@@ -183,6 +185,9 @@ export function createModalLifecycle(
         dismiss: dismissInstance,
         instanceId,
       });
+    },
+    setCloseDelayMs: (nextCloseDelayMs: number): void => {
+      closeDelayMs = nextCloseDelayMs;
     },
   };
 }

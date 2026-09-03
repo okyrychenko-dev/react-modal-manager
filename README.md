@@ -58,19 +58,18 @@ const app = (
 ## Installation
 
 ```bash
-npm install @okyrychenko-dev/react-modal-manager zustand
+npm install @okyrychenko-dev/react-modal-manager
 # or
-yarn add @okyrychenko-dev/react-modal-manager zustand
+yarn add @okyrychenko-dev/react-modal-manager
 # or
-pnpm add @okyrychenko-dev/react-modal-manager zustand
+pnpm add @okyrychenko-dev/react-modal-manager
 ```
 
 Peer dependencies:
 
 - [React](https://react.dev/) `^18.0.0 || ^19.0.0`
-- [Zustand](https://zustand-demo.pmnd.rs/) `^5.0.0`
 
-There are **no runtime dependencies** beyond these peers — the provider-scoped store is built into the package.
+Modal lifecycle state is provider-owned and observed directly by React. There is no global lifecycle singleton.
 
 ## Quick Start
 
@@ -319,7 +318,7 @@ The core prescribes no DOM structure, focus management, or styling — adapters 
 
 ### Next.js App Router (SSR)
 
-The lifecycle and its Zustand render-state projection are created lazily **per provider** and live in React context. The lifecycle owns opening, settlement, dismissal, delayed removal, and disposal; Zustand only publishes modal state for rendering. There is no module-level singleton or shared state across requests, so the provider is safe for the App Router and React Server Components. The provider uses hooks, so it must run in a Client Component. Wrap it once and render that wrapper from your server layout.
+The lifecycle is created lazily **per provider**, lives in React context, and exposes its state directly to React through external-store observation. It owns opening, settlement, dismissal, delayed removal, and disposal. Server rendering reads a stable empty snapshot, and there is no module-level singleton or shared state across requests. The provider uses hooks, so it must run in a Client Component. Wrap it once and render that wrapper from your server layout.
 
 ```tsx
 // app/providers/modal-provider.tsx

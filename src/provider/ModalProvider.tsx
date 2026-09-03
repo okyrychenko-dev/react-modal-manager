@@ -1,8 +1,8 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { confirmModal as defaultConfirmModal } from "../confirm";
+import { ModalLifecycleContext, createModalLifecycle } from "../lifecycle";
 import { getModalRegistryController } from "../registry/modalRegistryBinding";
 import { ModalRuntimeConfigContext } from "../runtime";
-import { ModalStoreProvider } from "../store";
 import { ModalViewport } from "../viewport";
 import { ModalRegistryBinder } from "./ModalRegistryBinder";
 import type { ReactNode } from "react";
@@ -30,9 +30,21 @@ export function ModalProvider(props: ModalProviderProps): ReactNode {
     () => ({ closeDelayMs, confirmModal }),
     [closeDelayMs, confirmModal],
   );
+  const [lifecycle] = useState(() => createModalLifecycle({ closeDelayMs }));
+
+  useEffect(() => {
+    lifecycle.setCloseDelayMs(closeDelayMs);
+  }, [closeDelayMs, lifecycle]);
+
+  useEffect(
+    () => () => {
+      lifecycle.dispose();
+    },
+    [lifecycle],
+  );
 
   return (
-    <ModalStoreProvider closeDelayMs={closeDelayMs}>
+    <ModalLifecycleContext.Provider value={lifecycle}>
       <ModalRuntimeConfigContext.Provider value={runtimeConfig}>
         {children}
         {registryController && (
@@ -40,6 +52,6 @@ export function ModalProvider(props: ModalProviderProps): ReactNode {
         )}
         <ModalViewport renderer={renderer} />
       </ModalRuntimeConfigContext.Provider>
-    </ModalStoreProvider>
+    </ModalLifecycleContext.Provider>
   );
 }

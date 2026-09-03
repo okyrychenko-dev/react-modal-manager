@@ -1,3 +1,4 @@
+import { isError } from "@okyrychenko-dev/type-utils";
 import { createElement } from "react";
 import { ModalDismissError, ModalRejectError } from "../errors";
 import type {
@@ -10,6 +11,7 @@ import type {
   ModalLifecycle,
   ModalLifecycleHandle,
   ModalLifecycleInstance,
+  ModalLifecycleState,
 } from "./modalLifecycle.types";
 
 export function createModalLifecycle(
@@ -19,6 +21,10 @@ export function createModalLifecycle(
   let instances: Array<ModalLifecycleInstance> = [];
   let disposed = false;
   let closeDelayMs = options.closeDelayMs;
+  const serverSnapshot: ModalLifecycleState = { instances: [] };
+  let snapshot = serverSnapshot;
+
+  const observers = new Set<VoidFunction>();
 
   const removalTimers = new Map<
     ModalInstanceId,
@@ -29,12 +35,19 @@ export function createModalLifecycle(
     (reason?: ModalDismissReason) => void
   >();
 
+  const notifyObservers = (): void => {
+    for (const observer of observers) {
+      observer();
+    }
+  };
+
   const publishState = (): void => {
     if (disposed) {
       return;
     }
 
-    options.onStateChange?.({ instances: [...instances] });
+    snapshot = { instances: [...instances] };
+    notifyObservers();
   };
 
   const removeInstance = (instanceId: ModalInstanceId): void => {
@@ -115,12 +128,15 @@ export function createModalLifecycle(
       removalTimers.clear();
       dismissers.clear();
       instances = [];
-      options.onStateChange?.({ instances: [] });
+      snapshot = { instances: [] };
+      notifyObservers();
+      observers.clear();
     },
     dismiss: (instanceId, reason) => {
       dismissers.get(instanceId)?.(reason);
     },
-    getState: () => ({ instances: [...instances] }),
+    getSnapshot: () => snapshot,
+    getServerSnapshot: () => serverSnapshot,
     open: <TInput, TResult>(
       modal: ModalDefinition<TInput, TResult>,
       input: TInput,
@@ -166,11 +182,7 @@ export function createModalLifecycle(
               instanceId,
               reject: (error) => {
                 settleInstance(instanceId, () => {
-                  reject(
-                    error instanceof Error
-                      ? error
-                      : new ModalRejectError(error),
-                  );
+                  reject(isError(error) ? error : new ModalRejectError(error));
                 });
               },
             }),
@@ -188,6 +200,17 @@ export function createModalLifecycle(
     },
     setCloseDelayMs: (nextCloseDelayMs: number): void => {
       closeDelayMs = nextCloseDelayMs;
+    },
+    subscribe: (observer): VoidFunction => {
+      if (disposed) {
+        return () => undefined;
+      }
+
+      observers.add(observer);
+
+      return () => {
+        observers.delete(observer);
+      };
     },
   };
 }

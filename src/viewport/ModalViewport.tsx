@@ -1,4 +1,4 @@
-import { useModals } from "../store";
+import { useModalLifecycleState } from "../lifecycle";
 import type { ReactNode } from "react";
 import type {
   ModalRendererProps,
@@ -12,7 +12,7 @@ function DefaultModalRenderer({ children }: ModalRendererProps): ReactNode {
 export function ModalViewport({
   renderer: Renderer = DefaultModalRenderer,
 }: ModalViewportProps): ReactNode {
-  const modals = useModals();
+  const { instances: modals } = useModalLifecycleState();
 
   return (
     <>

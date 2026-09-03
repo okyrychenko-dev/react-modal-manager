@@ -5,6 +5,8 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
+import { hydrateRoot } from "react-dom/client";
+import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createModalRegistry, useModalManager } from "../../index";
 import { ModalProvider } from "../ModalProvider";
@@ -40,6 +42,33 @@ describe("ModalProvider", () => {
     delete document.body.dataset.result;
     delete document.body.dataset.unmountDismissReason;
     vi.useRealTimers();
+  });
+
+  it("should hydrate from a deterministic empty server snapshot", async () => {
+    const serverMarkup = renderToString(
+      <ModalProvider>
+        <span>Application content</span>
+      </ModalProvider>,
+    );
+    const container = document.createElement("div");
+    container.innerHTML = serverMarkup;
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+
+    const root = hydrateRoot(
+      container,
+      <ModalProvider>
+        <span>Application content</span>
+      </ModalProvider>,
+    );
+    await act(async () => undefined);
+
+    expect(container).toHaveTextContent("Application content");
+    expect(consoleError).not.toHaveBeenCalled();
+
+    root.unmount();
+    consoleError.mockRestore();
   });
 
   it("should open a typed modal and resolve its result", async () => {

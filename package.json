@@ -41,8 +41,7 @@
     "modal",
     "dialog",
     "promise",
-    "typescript",
-    "zustand"
+    "typescript"
   ],
   "author": "Oleksii Kyrychenko alexey.kirichenko@gmail.com",
   "license": "MIT",
@@ -58,8 +57,7 @@
     "access": "public"
   },
   "peerDependencies": {
-    "react": "^18.0.0 || ^19.0.0",
-    "zustand": "^5.0.0"
+    "react": "^18.0.0 || ^19.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
@@ -70,6 +68,7 @@
     "@testing-library/react": "^16.3.0",
     "@types/node": "^24.10.4",
     "@types/react": "^19.2.5",
+    "@types/react-dom": "^19.2.7",
     "@typescript-eslint/eslint-plugin": "^8.46.4",
     "@typescript-eslint/parser": "^8.46.4",
     "@vitest/coverage-v8": "^4.1.10",
@@ -87,10 +86,12 @@
     "tsup": "^8.5.1",
     "typescript": "^5.3.3",
     "typescript-eslint": "^8.46.4",
-    "vitest": "^4.1.10",
-    "zustand": "^5.0.8"
+    "vitest": "^4.1.10"
   },
   "allowScripts": {
     "esbuild@0.27.7": true
+  },
+  "dependencies": {
+    "@okyrychenko-dev/type-utils": "^0.1.1"
   }
 }

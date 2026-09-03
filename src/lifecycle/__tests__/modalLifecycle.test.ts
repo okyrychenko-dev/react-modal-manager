@@ -35,6 +35,50 @@ describe("modal lifecycle", () => {
     vi.useRealTimers();
   });
 
+  it("should expose stable snapshots and notify active subscribers", () => {
+    const lifecycle = createModalLifecycle({ closeDelayMs: 0 });
+    const firstObserver = vi.fn();
+    const secondObserver = vi.fn();
+
+    expect(lifecycle.getSnapshot()).toBe(lifecycle.getSnapshot());
+    expect(lifecycle.getSnapshot()).toBe(lifecycle.getServerSnapshot());
+
+    const unsubscribeFirst = lifecycle.subscribe(firstObserver);
+    lifecycle.subscribe(secondObserver);
+    lifecycle.open(testModal, { message: "Observed" }).catch(() => undefined);
+
+    expect(firstObserver).toHaveBeenCalledTimes(1);
+    expect(secondObserver).toHaveBeenCalledTimes(1);
+    expect(lifecycle.getSnapshot().instances).toHaveLength(1);
+    expect(lifecycle.getServerSnapshot().instances).toEqual([]);
+    expect(lifecycle.getServerSnapshot()).toBe(lifecycle.getServerSnapshot());
+
+    const openedSnapshot = lifecycle.getSnapshot();
+    unsubscribeFirst();
+    unsubscribeFirst();
+    lifecycle.closeAll();
+
+    expect(firstObserver).toHaveBeenCalledTimes(1);
+    expect(secondObserver).toHaveBeenCalledTimes(3);
+    expect(lifecycle.getSnapshot()).not.toBe(openedSnapshot);
+    expect(lifecycle.getSnapshot().instances).toEqual([]);
+  });
+
+  it("should expose state created before an observer subscribes", () => {
+    const lifecycle = createModalLifecycle({ closeDelayMs: 0 });
+    lifecycle
+      .open(testModal, { message: "Already open" })
+      .catch(() => undefined);
+    const observer = vi.fn();
+
+    lifecycle.subscribe(observer);
+
+    expect(lifecycle.getSnapshot().instances).toEqual([
+      expect.objectContaining({ status: "open" }),
+    ]);
+    expect(observer).not.toHaveBeenCalled();
+  });
+
   it("should allocate unique instance identifiers and publish open state", () => {
     const lifecycle = createModalLifecycle({ closeDelayMs: 0 });
 
@@ -43,7 +87,7 @@ describe("modal lifecycle", () => {
 
     expect(first.instanceId).toBe("modal-0");
     expect(second.instanceId).toBe("modal-1");
-    expect(lifecycle.getState().instances).toEqual([
+    expect(lifecycle.getSnapshot().instances).toEqual([
       expect.objectContaining({
         definitionId: "test-modal",
         instanceId: "modal-0",
@@ -61,13 +105,13 @@ describe("modal lifecycle", () => {
     const lifecycle = createModalLifecycle({ closeDelayMs: 0 });
 
     const result = lifecycle.open(testModal, { message: "Resolved" });
-    const [instance] = lifecycle.getState().instances;
+    const [instance] = lifecycle.getSnapshot().instances;
 
     render(instance.render());
     fireEvent.click(screen.getByRole("button", { name: "Close modal" }));
 
     await expect(result).resolves.toBe("Resolved");
-    expect(lifecycle.getState().instances).toEqual([]);
+    expect(lifecycle.getSnapshot().instances).toEqual([]);
   });
 
   it("should keep a settled instance closing until its delay expires", async () => {
@@ -75,20 +119,20 @@ describe("modal lifecycle", () => {
     const lifecycle = createModalLifecycle({ closeDelayMs: 100 });
 
     const result = lifecycle.open(testModal, { message: "First result" });
-    const [instance] = lifecycle.getState().instances;
+    const [instance] = lifecycle.getSnapshot().instances;
 
     render(instance.render());
     fireEvent.click(screen.getByRole("button", { name: "Close modal" }));
     result.dismiss("close-all");
 
     await expect(result).resolves.toBe("First result");
-    expect(lifecycle.getState().instances[0]?.status).toBe("closing");
+    expect(lifecycle.getSnapshot().instances[0]?.status).toBe("closing");
 
     await vi.advanceTimersByTimeAsync(99);
-    expect(lifecycle.getState().instances).toHaveLength(1);
+    expect(lifecycle.getSnapshot().instances).toHaveLength(1);
 
     await vi.advanceTimersByTimeAsync(1);
-    expect(lifecycle.getState().instances).toEqual([]);
+    expect(lifecycle.getSnapshot().instances).toEqual([]);
   });
 
   it("should keep removal timers isolated between instances", async () => {
@@ -96,7 +140,7 @@ describe("modal lifecycle", () => {
     const lifecycle = createModalLifecycle({ closeDelayMs: 100 });
     const first = lifecycle.open(testModal, { message: "First" });
     const second = lifecycle.open(testModal, { message: "Second" });
-    const [firstInstance, secondInstance] = lifecycle.getState().instances;
+    const [firstInstance, secondInstance] = lifecycle.getSnapshot().instances;
 
     const firstRender = render(firstInstance.render());
     fireEvent.click(screen.getByRole("button", { name: "Close modal" }));
@@ -110,11 +154,11 @@ describe("modal lifecycle", () => {
     await expect(first).resolves.toBe("First");
     await expect(second).resolves.toBe("Second");
     expect(
-      lifecycle.getState().instances.map((instance) => instance.instanceId),
+      lifecycle.getSnapshot().instances.map((instance) => instance.instanceId),
     ).toEqual(["modal-1"]);
 
     await vi.advanceTimersByTimeAsync(50);
-    expect(lifecycle.getState().instances).toEqual([]);
+    expect(lifecycle.getSnapshot().instances).toEqual([]);
   });
 
   it("should dismiss the targeted instance through the lifecycle or handle", async () => {
@@ -124,7 +168,7 @@ describe("modal lifecycle", () => {
 
     const managedOutcome = managed.catch((error: unknown) => error);
     const handledOutcome = handled.catch((error: unknown) => error);
-    const [managedInstance] = lifecycle.getState().instances;
+    const [managedInstance] = lifecycle.getSnapshot().instances;
 
     render(managedInstance.render());
 
@@ -138,7 +182,7 @@ describe("modal lifecycle", () => {
     await expect(handledOutcome).resolves.toMatchObject({ reason: "dismiss" });
     await expect(managedOutcome).resolves.toBeInstanceOf(ModalDismissError);
     await expect(handledOutcome).resolves.toBeInstanceOf(ModalDismissError);
-    expect(lifecycle.getState().instances).toEqual([]);
+    expect(lifecycle.getSnapshot().instances).toEqual([]);
   });
 
   it("should close all open instances without resettling a closing instance", async () => {
@@ -147,7 +191,7 @@ describe("modal lifecycle", () => {
     const settled = lifecycle.open(testModal, { message: "Settled" });
     const open = lifecycle.open(testModal, { message: "Open" });
     const openOutcome = open.catch((error: unknown) => error);
-    const [settledInstance] = lifecycle.getState().instances;
+    const [settledInstance] = lifecycle.getSnapshot().instances;
 
     render(settledInstance.render());
     fireEvent.click(screen.getByRole("button", { name: "Close modal" }));
@@ -158,11 +202,11 @@ describe("modal lifecycle", () => {
       reason: "provider-unmount",
     });
     expect(
-      lifecycle.getState().instances.map((instance) => instance.status),
+      lifecycle.getSnapshot().instances.map((instance) => instance.status),
     ).toEqual(["closing", "closing"]);
 
     await vi.advanceTimersByTimeAsync(100);
-    expect(lifecycle.getState().instances).toEqual([]);
+    expect(lifecycle.getSnapshot().instances).toEqual([]);
   });
 
   it("should dispose pending work and prevent later state publication", async () => {
@@ -170,16 +214,17 @@ describe("modal lifecycle", () => {
     const publishedStatuses: Array<Array<string>> = [];
     const lifecycle = createModalLifecycle({
       closeDelayMs: 100,
-      onStateChange: (state) => {
-        publishedStatuses.push(
-          state.instances.map((instance) => instance.status),
-        );
-      },
+    });
+    lifecycle.subscribe(() => {
+      publishedStatuses.push(
+        lifecycle.getSnapshot().instances.map((instance) => instance.status),
+      );
     });
     const closing = lifecycle.open(testModal, { message: "Closing" });
     const pending = lifecycle.open(testModal, { message: "Pending" });
     const pendingOutcome = pending.catch((error: unknown) => error);
-    const [closingInstance, pendingInstance] = lifecycle.getState().instances;
+    const [closingInstance, pendingInstance] =
+      lifecycle.getSnapshot().instances;
 
     const closingRender = render(closingInstance.render());
     fireEvent.click(screen.getByRole("button", { name: "Close modal" }));
@@ -194,14 +239,14 @@ describe("modal lifecycle", () => {
     await expect(pendingOutcome).resolves.toMatchObject({
       reason: "provider-unmount",
     });
-    expect(lifecycle.getState().instances).toEqual([]);
+    expect(lifecycle.getSnapshot().instances).toEqual([]);
     expect(publishedStatuses[publishedStatuses.length - 1]).toEqual([]);
 
     const publicationCount = publishedStatuses.length;
     const afterDispose = lifecycle.open(testModal, { message: "Too late" });
     const afterDisposeOutcome = afterDispose.catch((error: unknown) => error);
 
-    expect(lifecycle.getState().instances).toEqual([]);
+    expect(lifecycle.getSnapshot().instances).toEqual([]);
 
     await vi.advanceTimersByTimeAsync(100);
     pending.dismiss();
@@ -220,25 +265,26 @@ describe("modal lifecycle", () => {
 
     const lifecycle = createModalLifecycle({
       closeDelayMs: 0,
-      onStateChange: (state) => {
-        if (attemptedReentrantOpen) {
-          reentrantPublications.push(
-            state.instances.map((instance) => instance.status),
-          );
-        }
-
-        if (state.instances.length !== 0) {
-          return;
-        }
-
-        attemptedReentrantOpen = true;
-        const handle = lifecycleReference.current?.open(testModal, {
-          message: "Too late",
-        });
-        reentrantOutcome = handle?.catch((error: unknown) => error);
-      },
     });
     lifecycleReference.current = lifecycle;
+    lifecycle.subscribe(() => {
+      const state = lifecycle.getSnapshot();
+      if (attemptedReentrantOpen) {
+        reentrantPublications.push(
+          state.instances.map((instance) => instance.status),
+        );
+      }
+
+      if (state.instances.length !== 0) {
+        return;
+      }
+
+      attemptedReentrantOpen = true;
+      const handle = lifecycleReference.current?.open(testModal, {
+        message: "Too late",
+      });
+      reentrantOutcome = handle?.catch((error: unknown) => error);
+    });
     const pending = lifecycle.open(testModal, { message: "Pending" });
     const pendingOutcome = pending.catch((error: unknown) => error);
 
@@ -251,14 +297,14 @@ describe("modal lifecycle", () => {
       reason: "provider-unmount",
     });
     expect(reentrantPublications).not.toContainEqual(["open"]);
-    expect(lifecycle.getState().instances).toEqual([]);
+    expect(lifecycle.getSnapshot().instances).toEqual([]);
   });
 
   it("should preserve Error rejections and wrap non-Error values", async () => {
     const lifecycle = createModalLifecycle({ closeDelayMs: 0 });
     const wrapped = lifecycle.open(testModal, { message: "Wrapped" });
     const wrappedOutcome = wrapped.catch((error: unknown) => error);
-    const [wrappedInstance] = lifecycle.getState().instances;
+    const [wrappedInstance] = lifecycle.getSnapshot().instances;
 
     render(wrappedInstance.render());
     fireEvent.click(screen.getByRole("button", { name: "Reject modal" }));
@@ -278,7 +324,7 @@ describe("modal lifecycle", () => {
     };
     const preserved = lifecycle.open(errorModal, undefined);
     const preservedOutcome = preserved.catch((error: unknown) => error);
-    const [preservedInstance] = lifecycle.getState().instances;
+    const [preservedInstance] = lifecycle.getSnapshot().instances;
 
     render(preservedInstance.render());
     fireEvent.click(screen.getByRole("button", { name: "Reject with Error" }));
@@ -290,7 +336,7 @@ describe("modal lifecycle", () => {
     const lifecycle = createModalLifecycle({ closeDelayMs: 100 });
     const result = lifecycle.open(testModal, { message: "Rejected" });
     const outcome = result.catch((error: unknown) => error);
-    const [instance] = lifecycle.getState().instances;
+    const [instance] = lifecycle.getSnapshot().instances;
 
     render(instance.render());
     fireEvent.click(screen.getByRole("button", { name: "Reject modal" }));
@@ -313,6 +359,6 @@ describe("modal lifecycle", () => {
     lifecycle.closeAll();
 
     await expect(outcome).resolves.toMatchObject({ reason: "close-all" });
-    expect(lifecycle.getState().instances).toEqual([]);
+    expect(lifecycle.getSnapshot().instances).toEqual([]);
   });
 });

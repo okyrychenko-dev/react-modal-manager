@@ -23,11 +23,16 @@ export type ModalLifecycleHandle<TResult> = Promise<TResult> & {
   instanceId: ModalInstanceId;
 };
 
-export interface ModalLifecycle {
+export interface ModalLifecycleObservation {
+  getSnapshot: () => ModalLifecycleState;
+  getServerSnapshot: () => ModalLifecycleState;
+  subscribe: (observer: VoidFunction) => VoidFunction;
+}
+
+export interface ModalLifecycle extends ModalLifecycleObservation {
   closeAll: (reason?: ModalDismissReason) => void;
   dispose: () => void;
   dismiss: (instanceId: ModalInstanceId, reason?: ModalDismissReason) => void;
-  getState: () => ModalLifecycleState;
   open: <TInput, TResult>(
     modal: ModalDefinition<TInput, TResult>,
     input: TInput,
@@ -37,5 +42,4 @@ export interface ModalLifecycle {
 
 export interface CreateModalLifecycleOptions {
   closeDelayMs: number;
-  onStateChange?: (state: ModalLifecycleState) => void;
 }

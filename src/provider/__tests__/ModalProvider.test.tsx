@@ -575,6 +575,75 @@ describe("ModalProvider", () => {
     });
   });
 
+  it("should reject a registry that was not created by createModalRegistry", () => {
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+
+    expect(() =>
+      render(
+        <ModalProvider registry={{} as never}>
+          <div />
+        </ModalProvider>,
+      ),
+    ).toThrow("ModalProvider registry must be created by createModalRegistry");
+
+    consoleError.mockRestore();
+  });
+
+  it("should reject an unknown registry key", () => {
+    const registry = createModalRegistry({ renameReport: renameReportModal });
+
+    expect(() => {
+      // @ts-expect-error Deliberately bypass the typed key contract to verify its runtime guard.
+      void registry.open("missing", {});
+    }).toThrow("Modal registry does not contain modal: missing");
+  });
+
+  it("should delegate confirm, dismiss, and close-all through a bound registry", async () => {
+    const registry = createModalRegistry({ renameReport: renameReportModal });
+
+    render(
+      <ModalProvider registry={registry}>
+        <div />
+      </ModalProvider>,
+    );
+
+    let confirmation!: ReturnType<typeof registry.confirm>;
+
+    act(() => {
+      confirmation = registry.confirm({ title: "Continue?" });
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
+
+    await expect(confirmation).resolves.toEqual({ confirmed: true });
+
+    let dismissed!: ModalHandle<RenameReportResult>;
+
+    act(() => {
+      dismissed = registry.open("renameReport", {
+        currentName: "Dismissed",
+        reportId: "dismissed",
+      });
+      registry.dismiss(dismissed.instanceId, "dismiss");
+    });
+
+    await expect(dismissed).rejects.toMatchObject({ reason: "dismiss" });
+
+    let closed!: ModalHandle<RenameReportResult>;
+
+    act(() => {
+      closed = registry.open("renameReport", {
+        currentName: "Closed",
+        reportId: "closed",
+      });
+      registry.closeAll("close-all");
+    });
+
+    await expect(closed).rejects.toMatchObject({ reason: "close-all" });
+  });
+
   it("should return a dismissible open handle through a provider-bound registry", async () => {
     const registry = createModalRegistry({
       renameReport: renameReportModal,

@@ -155,16 +155,12 @@ export function createModalLifecycle(
         });
       }
 
-      let dismissInstance: (reason?: ModalDismissReason) => void = () =>
-        undefined;
-
       const result = new Promise<TResult>((resolve, reject) => {
         const dismiss = (reason: ModalDismissReason = "dismiss"): void => {
           settleInstance(instanceId, () => {
             reject(new ModalDismissError(reason));
           });
         };
-        dismissInstance = dismiss;
         dismissers.set(instanceId, dismiss);
 
         const instance: ModalLifecycleInstance = {
@@ -194,7 +190,9 @@ export function createModalLifecycle(
       });
 
       return Object.assign(result, {
-        dismiss: dismissInstance,
+        dismiss: (reason?: ModalDismissReason) => {
+          dismissers.get(instanceId)?.(reason);
+        },
         instanceId,
       });
     },

@@ -245,11 +245,14 @@ describe("modal lifecycle", () => {
     const publicationCount = publishedStatuses.length;
     const afterDispose = lifecycle.open(testModal, { message: "Too late" });
     const afterDisposeOutcome = afterDispose.catch((error: unknown) => error);
+    const unsubscribeAfterDispose = lifecycle.subscribe(vi.fn());
 
     expect(lifecycle.getSnapshot().instances).toEqual([]);
 
     await vi.advanceTimersByTimeAsync(100);
     pending.dismiss();
+    afterDispose.dismiss();
+    unsubscribeAfterDispose();
 
     await expect(afterDisposeOutcome).resolves.toMatchObject({
       reason: "provider-unmount",

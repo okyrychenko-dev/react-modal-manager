@@ -1,20 +1,19 @@
 import { useMemo, useState } from "react";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import {
   ModalDismissError,
   ModalProvider,
-  ModalRejectError,
   createModalRegistry,
   useModalManager,
 } from "../index";
 import {
   StoryLayout,
   StoryRenderer,
-  rejectWithStringModal,
   renameReportModal,
   styles,
   withModalProvider,
 } from "../stories";
+import { DismissRejectDemo } from "./ModalProvider.stories.fixtures";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { ReactElement } from "react";
 import type { RenameReportResult } from "../stories";
@@ -33,14 +32,6 @@ function describeRenameError(error: unknown): string {
   }
 
   return "Rejected";
-}
-
-function describeRejectionState(error: unknown): string {
-  if (error instanceof ModalRejectError) {
-    return `Wrapped reject value: ${String(error.value)}`;
-  }
-
-  return "Rejected with Error";
 }
 
 function increment(count: number): number {
@@ -88,78 +79,22 @@ function TypedModalDemo(): ReactElement {
   );
 }
 
-function DismissRejectDemo(): ReactElement {
-  const modal = useModalManager();
-  const [state, setState] = useState(
-    "Open a modal to inspect rejection behavior",
-  );
-
-  const applyDismissError = (error: unknown): void => {
-    setState(describeRenameError(error));
-  };
-
-  const dismissFirst = (): void => {
-    modal.dismiss("modal-0");
-  };
-
-  const handleDismissFromManager = (): void => {
-    void modal
-      .open(renameReportModal, {
-        currentName: "Dismiss me",
-        reportId: "report-dismiss",
-      })
-      .catch(applyDismissError);
-
-    window.setTimeout(dismissFirst, 500);
-  };
-
-  const applyRejectionState = (error: unknown): void => {
-    setState(describeRejectionState(error));
-  };
-
-  const handleReject = (): void => {
-    void modal
-      .open(rejectWithStringModal, undefined)
-      .catch(applyRejectionState);
-  };
-
-  return (
-    <StoryLayout
-      description="Dismissal rejects with ModalDismissError. Unknown reject values are wrapped in ModalRejectError."
-      results={[{ label: "Promise state", value: state }]}
-      title="Dismiss And Reject"
-    >
-      <div className={styles.buttonRow}>
-        <button
-          className={styles.button}
-          onClick={handleDismissFromManager}
-          type="button"
-        >
-          Auto dismiss from manager
-        </button>
-        <button
-          className={`${styles.button} ${styles.buttonDanger}`}
-          onClick={handleReject}
-          type="button"
-        >
-          Open rejecting modal
-        </button>
-      </div>
-    </StoryLayout>
-  );
-}
-
 function StackedModalDemo(): ReactElement {
   const modal = useModalManager();
   const [closedCount, setClosedCount] = useState(0);
   const [dismissedCount, setDismissedCount] = useState(0);
+  const [lastDismissReason, setLastDismissReason] = useState("None");
 
   const markResolved = (): void => {
     setClosedCount(increment);
   };
 
-  const markDismissed = (): void => {
+  const markDismissed = (error: unknown): void => {
     setDismissedCount(increment);
+
+    if (error instanceof ModalDismissError) {
+      setLastDismissReason(error.reason);
+    }
   };
 
   const openStack = (): void => {
@@ -184,6 +119,7 @@ function StackedModalDemo(): ReactElement {
       results={[
         { label: "Resolved", value: String(closedCount) },
         { label: "Dismissed", value: String(dismissedCount) },
+        { label: "Last dismissal", value: lastDismissReason },
       ]}
       title="Stacked Modals"
     >
@@ -232,8 +168,8 @@ function ProviderBoundRegistryDemo(): ReactElement {
   const handleOpen = (): void => {
     void registry
       .open("renameReport", {
-        currentName: "Controller report",
-        reportId: "controller-report",
+        currentName: "Registry report",
+        reportId: "registry-report",
       })
       .then((modalResult) => {
         setResult(describeRenameResult(modalResult));
@@ -319,6 +255,24 @@ const playTypedCustomModal: NonNullable<Story["play"]> = async ({
   ).toBeInTheDocument();
 };
 
+const playRepeatedManagerDismiss: NonNullable<Story["play"]> = async ({
+  canvasElement,
+}) => {
+  const canvas = within(canvasElement);
+  const trigger = canvas.getByRole("button", {
+    name: "Auto dismiss from manager",
+  });
+
+  for (let cycle = 0; cycle < 2; cycle += 1) {
+    await userEvent.click(trigger);
+    await expect(await canvas.findByRole("dialog")).toBeInTheDocument();
+    await waitFor(async () => {
+      await expect(canvas.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+    await expect(canvas.getByText("Dismissed: dismiss")).toBeInTheDocument();
+  }
+};
+
 export const TypedCustomModal: Story = {
   decorators: [withModalProvider],
   render: renderTypedModal,
@@ -334,6 +288,13 @@ export const TypedCustomModalInteraction: Story = {
 export const DismissAndReject: Story = {
   decorators: [withModalProvider],
   render: renderDismissAndReject,
+};
+
+export const RepeatedManagerDismissInteraction: Story = {
+  decorators: [withModalProvider],
+  render: renderDismissAndReject,
+  tags: ["!dev", "!autodocs"],
+  play: playRepeatedManagerDismiss,
 };
 
 export const StackedModals: Story = {

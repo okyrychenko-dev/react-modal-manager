@@ -239,6 +239,14 @@ export const withModalProvider: Decorator = (Story) => {
   );
 };
 
+export const withImmediateModalProvider: Decorator = (Story) => {
+  return (
+    <ModalProvider closeDelayMs={0} renderer={StoryRenderer}>
+      <Story />
+    </ModalProvider>
+  );
+};
+
 export const withCustomConfirmModalProvider: Decorator = (Story) => {
   return (
     <ModalProvider

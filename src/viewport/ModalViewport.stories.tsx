@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { ModalDismissError, useModalManager } from "../index";
 import {
   StoryLayout,
   renameReportModal,
   styles,
+  withImmediateModalProvider,
   withModalProvider,
 } from "../stories";
 import type { Meta, StoryObj } from "@storybook/react-vite";
@@ -53,9 +54,9 @@ function CustomRendererDemo(): ReactElement {
 
   return (
     <StoryLayout
-      description="ModalViewport maps active modal instances through the renderer boundary. The demo renderer shows the runtime instance id in the top-right badge."
+      description="ModalViewport maps active lifecycle instances through the renderer seam. The badge exposes instance identity and the open-to-closing transition."
       results={[{ label: "Renderer flow", value: result }]}
-      title="Custom Renderer Boundary"
+      title="Custom Renderer Lifecycle"
     >
       <div className={styles.buttonRow}>
         <button
@@ -74,9 +75,20 @@ function renderCustomRenderer(): ReactElement {
   return <CustomRendererDemo />;
 }
 
+async function openRenderedModal(
+  canvasElement: HTMLElement,
+): Promise<HTMLElement> {
+  const canvas = within(canvasElement);
+
+  await userEvent.click(
+    canvas.getByRole("button", { name: "Open rendered modal" }),
+  );
+
+  return canvas.findByRole("dialog");
+}
+
 const meta: Meta = {
   title: "Components/ModalViewport",
-  decorators: [withModalProvider],
   parameters: {
     layout: "fullscreen",
   },
@@ -91,21 +103,49 @@ const playCustomRenderer: NonNullable<Story["play"]> = async ({
   canvasElement,
 }) => {
   const canvas = within(canvasElement);
+  const dialog = await openRenderedModal(canvasElement);
 
+  await expect(dialog).toBeInTheDocument();
+  await expect(canvas.getByText("modal-0 · open")).toBeInTheDocument();
+
+  await userEvent.click(within(dialog).getByRole("button", { name: "Rename" }));
+
+  await expect(canvas.getByText("modal-0 · closing")).toBeInTheDocument();
+  await waitFor(async () => {
+    await expect(canvas.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+};
+
+const playImmediateRemoval: NonNullable<Story["play"]> = async ({
+  canvasElement,
+}) => {
+  const canvas = within(canvasElement);
+  const dialog = await openRenderedModal(canvasElement);
   await userEvent.click(
-    canvas.getByRole("button", { name: "Open rendered modal" }),
+    within(dialog).getByRole("button", {
+      name: "Rename",
+    }),
   );
 
-  await expect(await canvas.findByRole("dialog")).toBeInTheDocument();
-  await expect(canvas.getByText(/modal-0/)).toBeInTheDocument();
+  await expect(canvas.queryByRole("dialog")).not.toBeInTheDocument();
+  await expect(canvas.queryByText(/ · closing$/)).not.toBeInTheDocument();
+  await expect(canvas.getByText("Resolved: Renderer demo")).toBeInTheDocument();
 };
 
 export const CustomRenderer: Story = {
+  decorators: [withModalProvider],
   render: renderCustomRenderer,
 };
 
 export const CustomRendererInteraction: Story = {
+  decorators: [withModalProvider],
   render: renderCustomRenderer,
   tags: ["!dev", "!autodocs"],
   play: playCustomRenderer,
+};
+
+export const ImmediateRemoval: Story = {
+  decorators: [withImmediateModalProvider],
+  render: renderCustomRenderer,
+  play: playImmediateRemoval,
 };

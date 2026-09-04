@@ -36,21 +36,21 @@ const app = (
 ## Why This Library
 
 - **Typed results, not `any`.** `open<TInput, TResult>(def, input)` returns a `Promise<TResult>`. Both sides of the call are checked.
-- **Per-provider isolation.** Each `ModalProvider` owns an independent lifecycle and render-state projection — no global singleton, so subtrees and tests never leak modal state into each other.
-- **Open from non-React code.** A typed registry (or controller) lets event buses, command palettes, and action maps open modals while keeping full inference.
-- **UI-agnostic core.** A single `renderer` boundary lets you plug in portals, overlays, animations, or any design system. The core never prescribes DOM or styling.
+- **Per-provider isolation.** Each `ModalProvider` owns an independent lifecycle whose authoritative state React observes directly — no global lifecycle singleton, so subtrees and tests never leak modal state into each other.
+- **Open from non-React code.** A typed registry lets event buses, command palettes, and action maps open modals while keeping full inference.
+- **UI-agnostic core.** A single `renderer` seam lets you plug in portals, overlays, animations, or any design system. The core never prescribes DOM or styling.
 - **Built-in `confirm()`** with a typed, discriminated-union result — useful from day one, replaceable when you need your own design.
 - **Promise-shaped lifecycle.** Dismissals reject with `ModalDismissError`; exit animations are supported through `closeDelayMs` + an `"open" | "closing"` status.
 
-### Compared to `nice-modal-react`
+### Compared to [`@ebay/nice-modal-react`](https://github.com/eBay/nice-modal-react)
 
 | | `react-modal-manager` | `nice-modal-react` |
 | --- | --- | --- |
-| Result typing | `Promise<TResult>`, fully inferred | result is effectively `unknown` / `any` |
-| State scope | isolated per `ModalProvider` | single global singleton |
-| Open from anywhere | typed registry / controller (LIFO provider stack) | global `NiceModal.show(id)` |
+| Result typing | `Promise<TResult>`, inferred from the modal definition or registry key | promise result is not coupled to a registered modal's result type |
+| State scope | independent lifecycle per `ModalProvider` | global modal identity and dispatch model |
+| Open from anywhere | typed registry (LIFO provider stack) | global `NiceModal.show(id)` |
 | Built-in confirm | typed `ConfirmModalResult` | none |
-| UI coupling | UI-agnostic `renderer` boundary | you render it yourself |
+| UI coupling | UI-agnostic `renderer` seam | you render it yourself |
 | Concepts to first modal | 1 (`confirm`) — or define → register → open for custom modals | 1 (`show`) |
 
 **Honest trade-off:** there is no "show a modal by string id from literally anywhere" without importing a typed `ModalDefinition` or a registry. That is the deliberate price of end-to-end type safety, not a missing feature.
@@ -70,6 +70,8 @@ Peer dependencies:
 - [React](https://react.dev/) `^18.0.0 || ^19.0.0`
 
 Modal lifecycle state is provider-owned and observed directly by React. There is no global lifecycle singleton.
+
+The package also installs its small runtime guard dependency automatically; React is the only peer dependency consumers provide.
 
 ## Quick Start
 
@@ -261,6 +263,8 @@ export async function renameFromAction(reportId: string, currentName: string) {
 
 The registry key is type-checked, and TypeScript infers the required input and the returned result from the modal registered under that key. `modals.open` from outside the React tree targets the most recently mounted `ModalProvider` bound to that registry (providers form a LIFO stack and fall back on unmount).
 
+Before a provider binds the registry, `modals.isReady()` is `false` and registry operations throw. Binding happens in a client effect, so a registry is intentionally unbound during server rendering.
+
 ## Confirmation Modals
 
 `modal.confirm()` (and `registry.confirm()`) opens the built-in confirmation modal and resolves to a typed, discriminated-union result.
@@ -282,7 +286,7 @@ if (result.confirmed) {
 The bundled `confirmModal` is an **accessible, unstyled reference implementation**:
 
 - `role="dialog"` with `aria-modal="true"`, `aria-labelledby` (title) and `aria-describedby` (description)
-- the confirm button receives focus on open (the cancel button for `variant: "danger"`, so a stray Enter never confirms a destructive action), and focus returns to the trigger on close
+- the confirm button receives focus on open (the cancel button for `variant: "danger"`, so a stray Enter never confirms a destructive action), and focus returns to the previously focused element when the modal is removed
 - `Tab` / `Shift+Tab` are trapped within the dialog
 - `Escape` dismisses it (unless `dismissible: false`)
 
@@ -312,7 +316,7 @@ function App() {
 }
 ```
 
-The core prescribes no DOM structure, focus management, or styling — adapters provide those while reusing the same lifecycle API. When `closeDelayMs` is greater than `0`, resolved or dismissed instances move from `modal.status === "open"` to `modal.status === "closing"` before removal, giving exit animations time to run.
+The core prescribes no DOM structure, focus management, or styling — renderers provide those while reusing the same modal manager interface. When `closeDelayMs` is greater than `0`, resolved, dismissed, or rejected instances move from `modal.status === "open"` to `modal.status === "closing"` before removal, giving exit animations time to run. A value of `0` or less removes the instance immediately. Updating the prop changes the removal delay used by later settlements in that provider.
 
 ## Recipes
 
@@ -496,7 +500,7 @@ Creates an isolated modal manager for a React subtree and renders active modals.
 - `renderer?: ModalRenderer` — Optional wrapper for each rendered modal instance
 - `confirmModal?: ModalDefinition<ConfirmModalParams, ConfirmModalResult>` — Optional custom confirm modal implementation
 - `registry?: ModalRegistry` — Optional typed modal registry bound to this provider while it is mounted
-- `closeDelayMs?: number` — Delay before removing a closing modal from the store. Defaults to `0`
+- `closeDelayMs?: number` — Delay before removing a closing lifecycle instance. Values of `0` or less remove immediately. Defaults to `0`; prop updates apply to later settlements
 
 ### `useModalManager()`
 
@@ -515,7 +519,7 @@ Creates a typed modal definition.
 
 **Options:**
 
-- `id?: string` — Optional stable modal definition id. An internal debug id is generated when omitted
+- `id?: string` — Optional stable modal definition id. A unique definition id is generated when omitted
 - `component: ModalComponent<TInput, TResult>` — React component that receives typed input and completion callbacks
 
 ### `createModalRegistry(definitions)`
@@ -536,15 +540,15 @@ Props passed to custom modal components.
 
 - `input: TInput` — Input supplied to `modal.open()`
 - `instanceId: string` — Runtime modal instance id
-- `close(result: TResult): void` — Resolve the modal promise and remove the instance
-- `dismiss(reason?): void` — Reject with `ModalDismissError` and remove the instance
-- `reject(error): void` — Reject with an error and remove the instance
+- `close(result: TResult): void` — Resolve the modal promise and begin closing the instance
+- `dismiss(reason?): void` — Reject with `ModalDismissError` and begin closing the instance
+- `reject(error): void` — Reject with an error and begin closing the instance
 
-When `closeDelayMs` is configured, `close`, `dismiss`, and `reject` settle the promise immediately, mark the modal as `"closing"`, and remove it after the delay.
+When `closeDelayMs` is greater than `0`, `close`, `dismiss`, and `reject` settle the promise immediately, mark the modal as `"closing"`, and remove it after the delay. A value of `0` or less removes the instance immediately after settlement.
 
 ### `ModalRendererProps`
 
-Props passed to the `renderer` boundary.
+Props passed to the `renderer` seam.
 
 - `children: ReactNode` — Rendered modal component
 - `modal.definitionId: string` — Stable modal definition id
@@ -566,14 +570,16 @@ Opens the built-in (or provided) confirmation modal.
 
 **Returns:**
 
-```ts
-export type ConfirmationModalRejectReason = "cancel" | "dismiss";
+`ConfirmModalResult` is a discriminated union. Its structure is shown with named branches below so the successful and cancelled paths remain explicit; only `ConfirmModalResult` is exported from the package root.
 
-export interface ConfirmationModalConfirmedResult {
+```ts
+type ConfirmationModalRejectReason = "cancel" | "dismiss";
+
+interface ConfirmationModalConfirmedResult {
   confirmed: true;
 }
 
-export interface ConfirmationModalRejectedResult {
+interface ConfirmationModalRejectedResult {
   confirmed: false;
   reason: ConfirmationModalRejectReason;
 }
@@ -616,7 +622,9 @@ npm install
 npm run typecheck
 npm run lint
 npm run test:run
+npm run test:coverage
 npm run build
+npm run build-storybook
 ```
 
 ## License

@@ -15,10 +15,10 @@ type ConfirmModalProps = ModalComponentProps<
 function renderConfirmModal(
   input: ConfirmModalParams,
   overrides?: Partial<ConfirmModalProps>,
-): { close: ConfirmModalProps["close"] } {
+): { close: ConfirmModalProps["close"]; unmount: VoidFunction } {
   const close = vi.fn();
 
-  render(
+  const { unmount } = render(
     <ConfirmModal
       close={close}
       dismiss={vi.fn()}
@@ -29,7 +29,7 @@ function renderConfirmModal(
     />,
   );
 
-  return { close };
+  return { close, unmount };
 }
 
 describe("ConfirmModal a11y", () => {
@@ -68,12 +68,37 @@ describe("ConfirmModal a11y", () => {
     expect(screen.getByRole("button", { name: "Keep" })).toHaveFocus();
   });
 
+  it("should tolerate a previously focused non-HTML element", () => {
+    const previouslyFocused = document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "svg",
+    );
+
+    previouslyFocused.setAttribute("tabindex", "0");
+    document.body.append(previouslyFocused);
+    previouslyFocused.focus();
+
+    const { unmount } = renderConfirmModal({ title: "Delete?" });
+
+    expect(() => unmount()).not.toThrow();
+
+    previouslyFocused.remove();
+  });
+
   it("should dismiss on Escape when dismissible", () => {
     const { close } = renderConfirmModal({ title: "Delete?" });
 
     fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
 
     expect(close).toHaveBeenCalledWith({ confirmed: false, reason: "dismiss" });
+  });
+
+  it("should return a cancelled result from the cancel button", () => {
+    const { close } = renderConfirmModal({ title: "Delete?" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(close).toHaveBeenCalledWith({ confirmed: false, reason: "cancel" });
   });
 
   it("should ignore Escape when not dismissible", () => {
@@ -108,5 +133,12 @@ describe("ConfirmModal a11y", () => {
       shiftKey: true,
     });
     expect(confirm).toHaveFocus();
+
+    cancel.focus();
+    fireEvent.keyDown(screen.getByRole("dialog"), { key: "Tab" });
+    expect(cancel).toHaveFocus();
+
+    fireEvent.keyDown(screen.getByRole("dialog"), { key: "Enter" });
+    expect(cancel).toHaveFocus();
   });
 });

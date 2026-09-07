@@ -1,26 +1,26 @@
-import { useEffect } from "react";
+import { type ReactNode, useEffect } from "react";
 import { useModalManager } from "../hooks";
-import type { ReactNode } from "react";
-import type { ModalController } from "../registry";
+import { attachModalRegistry } from "../registry/modalRegistryAttachment";
+import type { ModalRegistryAttachable } from "../registry/modalRegistryAttachment";
 
 interface ModalRegistryBinderProps {
-  controller: ModalController;
+  registry: ModalRegistryAttachable;
 }
 
 export function ModalRegistryBinder(
   props: ModalRegistryBinderProps,
 ): ReactNode {
-  const { controller } = props;
+  const { registry } = props;
 
   const manager = useModalManager();
 
   useEffect(() => {
-    const unbind = controller.bind(manager);
+    const unbind = attachModalRegistry(registry, manager);
 
     return () => {
       unbind();
     };
-  }, [controller, manager]);
+  }, [registry, manager]);
 
   return null;
 }

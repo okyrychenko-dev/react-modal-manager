@@ -1,7 +1,8 @@
+import { isDefined } from "@okyrychenko-dev/type-utils";
 import { useEffect, useMemo, useState } from "react";
 import { confirmModal as defaultConfirmModal } from "../confirm";
 import { ModalLifecycleContext, createModalLifecycle } from "../lifecycle";
-import { getModalRegistryController } from "../registry/modalRegistryBinding";
+import { isModalRegistryAttachable } from "../registry/modalRegistryAttachment";
 import { ModalRuntimeConfigContext } from "../runtime";
 import { ModalViewport } from "../viewport";
 import { ModalRegistryBinder } from "./ModalRegistryBinder";
@@ -17,10 +18,8 @@ export function ModalProvider(props: ModalProviderProps): ReactNode {
     registry,
     renderer,
   } = props;
-  const registryController =
-    registry === undefined ? undefined : getModalRegistryController(registry);
 
-  if (registry !== undefined && registryController === undefined) {
+  if (isDefined(registry) && !isModalRegistryAttachable(registry)) {
     throw new Error(
       "ModalProvider registry must be created by createModalRegistry",
     );
@@ -30,6 +29,7 @@ export function ModalProvider(props: ModalProviderProps): ReactNode {
     () => ({ closeDelayMs, confirmModal }),
     [closeDelayMs, confirmModal],
   );
+
   const [lifecycle] = useState(() => createModalLifecycle({ closeDelayMs }));
 
   useEffect(() => {
@@ -47,9 +47,7 @@ export function ModalProvider(props: ModalProviderProps): ReactNode {
     <ModalLifecycleContext.Provider value={lifecycle}>
       <ModalRuntimeConfigContext.Provider value={runtimeConfig}>
         {children}
-        {registryController && (
-          <ModalRegistryBinder controller={registryController} />
-        )}
+        {isDefined(registry) && <ModalRegistryBinder registry={registry} />}
         <ModalViewport renderer={renderer} />
       </ModalRuntimeConfigContext.Provider>
     </ModalLifecycleContext.Provider>

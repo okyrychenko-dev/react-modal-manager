@@ -20,6 +20,21 @@ export interface ModalRegistryBinding {
   isReady: () => boolean;
 }
 
+export interface ModalController extends ModalManager {
+  bind: (manager: ModalManager) => VoidFunction;
+  isReady: () => boolean;
+}
+
+export interface ModalRegistryRouter {
+  activeManager: () => ModalManager;
+  bind: (manager: ModalManager) => VoidFunction;
+  isReady: () => boolean;
+}
+
+export interface ModalRegistryAttachment {
+  manager: ModalManager;
+}
+
 export interface ModalRegistry<
   TDefinitions extends ModalRegistryDefinitions,
 > extends ModalRegistryBinding {

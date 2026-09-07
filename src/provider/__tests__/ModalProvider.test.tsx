@@ -1,3 +1,4 @@
+import { assertDefined } from "@okyrychenko-dev/type-utils";
 import {
   act,
   fireEvent,
@@ -5,6 +6,7 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
+import { StrictMode } from "react";
 import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -754,6 +756,78 @@ describe("ModalProvider", () => {
       name: "First updated",
       status: "renamed",
     });
+  });
+
+  it("should keep a modal handle attached to the provider that created it", async () => {
+    const registry = createModalRegistry({ renameReport: renameReportModal });
+    const { rerender } = render(
+      <SharedRegistryProviders
+        registry={registry}
+        showSecondProvider={false}
+      />,
+    );
+    let firstHandle: ModalHandle<RenameReportResult> | undefined;
+
+    act(() => {
+      firstHandle = registry.open("renameReport", {
+        currentName: "First",
+        reportId: "report-1",
+      });
+    });
+
+    rerender(
+      <SharedRegistryProviders registry={registry} showSecondProvider />,
+    );
+
+    let secondHandle: ModalHandle<RenameReportResult> | undefined;
+
+    act(() => {
+      secondHandle = registry.open("renameReport", {
+        currentName: "Second",
+        reportId: "report-2",
+      });
+    });
+
+    const attachedFirstHandle = firstHandle;
+    const attachedSecondHandle = secondHandle;
+
+    assertDefined(attachedFirstHandle);
+    assertDefined(attachedSecondHandle);
+
+    act(() => {
+      attachedFirstHandle.dismiss();
+    });
+
+    await expect(attachedFirstHandle).rejects.toMatchObject({
+      reason: "dismiss",
+    });
+    expect(screen.queryByTestId("first-modal-shell")).not.toBeInTheDocument();
+    expect(screen.getByTestId("second-modal-shell")).toBeInTheDocument();
+
+    act(() => {
+      attachedSecondHandle.dismiss();
+    });
+
+    await expect(attachedSecondHandle).rejects.toMatchObject({
+      reason: "dismiss",
+    });
+  });
+
+  it("should preserve registry routing through Strict Mode effect replay", () => {
+    const registry = createModalRegistry({ renameReport: renameReportModal });
+    const { unmount } = render(
+      <StrictMode>
+        <ModalProvider registry={registry}>
+          <div />
+        </ModalProvider>
+      </StrictMode>,
+    );
+
+    expect(registry.isReady()).toBe(true);
+
+    unmount();
+
+    expect(registry.isReady()).toBe(false);
   });
 
   it("should throw when useModalManager is used outside ModalProvider", () => {

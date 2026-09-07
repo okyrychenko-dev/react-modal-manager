@@ -1,7 +1,8 @@
-import { createModalController } from "./createModalController";
 import { MODAL_REGISTRY_UNKNOWN_KEY_ERROR } from "./createModalRegistry.constants";
-import { bindModalRegistry } from "./modalRegistryBinding";
-import type { ModalHandle } from "../hooks";
+import { createModalRegistryRouter } from "./createModalRegistry.utils";
+import { MODAL_REGISTRY_ATTACH } from "./modalRegistryAttachment";
+import type { ModalHandle, ModalManager } from "../hooks";
+import type { ModalDismissReason, ModalInstanceId } from "../types";
 import type {
   ModalRegistry,
   ModalRegistryDefinitions,
@@ -11,7 +12,7 @@ import type {
 export function createModalRegistry<
   const TDefinitions extends ModalRegistryDefinitions,
 >(definitions: TDefinitions): ModalRegistry<TDefinitions> {
-  const controller = createModalController();
+  const router = createModalRegistryRouter();
 
   function open<TKey extends keyof TDefinitions & string>(
     key: TKey,
@@ -22,18 +23,25 @@ export function createModalRegistry<
       throw new Error(`${MODAL_REGISTRY_UNKNOWN_KEY_ERROR}: ${key}`);
     }
 
-    return definitions[key].open(controller, input);
+    return definitions[key].open(router.activeManager(), input);
   }
 
-  const registry: ModalRegistry<TDefinitions> = {
-    closeAll: controller.closeAll,
-    confirm: controller.confirm,
-    dismiss: controller.dismiss,
-    isReady: controller.isReady,
+  const registry: ModalRegistry<TDefinitions> & {
+    [MODAL_REGISTRY_ATTACH]: (manager: ModalManager) => VoidFunction;
+  } = {
+    closeAll: (reason?: ModalDismissReason) => {
+      router.activeManager().closeAll(reason);
+    },
+    confirm: (params: Parameters<ModalManager["confirm"]>[0]) => {
+      return router.activeManager().confirm(params);
+    },
+    dismiss: (instanceId: ModalInstanceId, reason?: ModalDismissReason) => {
+      router.activeManager().dismiss(instanceId, reason);
+    },
+    isReady: router.isReady,
     open,
+    [MODAL_REGISTRY_ATTACH]: router.bind,
   };
-
-  bindModalRegistry(registry, controller);
 
   return registry;
 }

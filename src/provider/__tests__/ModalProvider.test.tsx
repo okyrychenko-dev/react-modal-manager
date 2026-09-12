@@ -74,6 +74,18 @@ describe("ModalProvider", () => {
     consoleError.mockRestore();
   });
 
+  it("should leave a provider registry unbound during server rendering", () => {
+    const registry = createModalRegistry({ renameReport: renameReportModal });
+
+    renderToString(
+      <ModalProvider registry={registry}>
+        <span>Application content</span>
+      </ModalProvider>,
+    );
+
+    expect(registry.isReady()).toBe(false);
+  });
+
   it("should open a typed modal and resolve its result", async () => {
     render(
       <ModalProvider>
@@ -525,7 +537,7 @@ describe("ModalProvider", () => {
     expect(screen.queryByTestId("modal-shell")).not.toBeInTheDocument();
   });
 
-  it("should clear scheduled modal removal timers when provider unmounts", () => {
+  it("should clear scheduled modal removal timers when provider unmounts", async () => {
     vi.useFakeTimers();
 
     const { unmount } = render(
@@ -539,7 +551,9 @@ describe("ModalProvider", () => {
 
     expect(vi.getTimerCount()).toBe(1);
 
-    unmount();
+    await act(async () => {
+      unmount();
+    });
 
     expect(vi.getTimerCount()).toBe(0);
   });
@@ -655,6 +669,33 @@ describe("ModalProvider", () => {
     });
 
     await expect(closed).rejects.toMatchObject({ reason: "close-all" });
+  });
+
+  it("should use provider confirmation customization through a bound registry", async () => {
+    const registry = createModalRegistry({ renameReport: renameReportModal });
+
+    render(
+      <ModalProvider confirmModal={customConfirmModal} registry={registry}>
+        <div />
+      </ModalProvider>,
+    );
+
+    let confirmation!: ReturnType<typeof registry.confirm>;
+
+    act(() => {
+      confirmation = registry.confirm({ title: "Continue?" });
+    });
+
+    expect(
+      screen.getByRole("dialog", { name: "Custom confirm" }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Custom cancel" }));
+
+    await expect(confirmation).resolves.toEqual({
+      confirmed: false,
+      reason: "cancel",
+    });
   });
 
   it("should return a dismissible open handle through a provider-bound registry", async () => {
@@ -829,7 +870,7 @@ describe("ModalProvider", () => {
     });
   });
 
-  it("should preserve registry routing through Strict Mode effect replay", () => {
+  it("should preserve registry-driven modal behavior through Strict Mode effect replay", async () => {
     const registry = createModalRegistry({ renameReport: renameReportModal });
     const { unmount } = render(
       <StrictMode>
@@ -840,6 +881,26 @@ describe("ModalProvider", () => {
     );
 
     expect(registry.isReady()).toBe(true);
+
+    let handle!: ModalHandle<RenameReportResult>;
+
+    act(() => {
+      handle = registry.open("renameReport", {
+        currentName: "Strict Mode",
+        reportId: "strict-mode",
+      });
+    });
+
+    expect(
+      await screen.findByRole("dialog", { name: "Rename report" }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Rename" }));
+
+    await expect(handle).resolves.toEqual({
+      name: "Strict Mode updated",
+      status: "renamed",
+    });
 
     unmount();
 

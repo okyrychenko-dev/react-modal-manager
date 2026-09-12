@@ -1,7 +1,7 @@
 import { type ReactNode, useEffect } from "react";
 import { useModalManager } from "../hooks";
-import { attachModalRegistry } from "../registry/modalRegistryAttachment";
-import type { ModalRegistryAttachable } from "../registry/modalRegistryAttachment";
+import { attachModalRegistry } from "../registry/createModalRegistry";
+import type { ModalRegistryAttachable } from "../registry/createModalRegistry";
 
 interface ModalRegistryBinderProps {
   registry: ModalRegistryAttachable;

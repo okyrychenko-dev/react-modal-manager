@@ -626,6 +626,7 @@ pnpm run test:run
 pnpm run test:coverage
 pnpm run build
 pnpm run build-storybook
+pnpm pack --pack-destination /tmp/react-modal-manager-pack
 ```
 
 ## License

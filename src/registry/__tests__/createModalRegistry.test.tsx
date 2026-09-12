@@ -1,6 +1,6 @@
 import { assertDefined } from "@okyrychenko-dev/type-utils";
 import { act, render, screen, within } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, expectTypeOf, it } from "vitest";
 import { assertTypeUtilsAssertion } from "../../test/assertTypeUtilsAssertion";
 import { createModalRegistry } from "../createModalRegistry";
 import {
@@ -23,10 +23,39 @@ function dismissHandle<TResult>(
 }
 
 describe("createModalRegistry", () => {
+  it("should preserve key, input, result, and handle inference", () => {
+    const registry = createModalRegistry({ test: registryTestModal });
+
+    expectTypeOf(registry.open).toBeCallableWith("test", {
+      label: "Typed modal",
+    });
+
+    const assertInvalidCalls = (): void => {
+      // @ts-expect-error Registry keys are limited to registered definitions.
+      void registry.open("missing", { label: "Typed modal" });
+      // @ts-expect-error Registry input is inferred from the selected key.
+      void registry.open("test", { invalid: true });
+    };
+
+    expectTypeOf(assertInvalidCalls).toEqualTypeOf<VoidFunction>();
+
+    render(
+      <RegistryProviders registry={registry} showFirst showSecond={false} />,
+    );
+
+    const handle = registry.open("test", { label: "Typed modal" });
+
+    expectTypeOf(handle).toEqualTypeOf<ModalHandle<RegistryTestResult>>();
+    expectTypeOf(handle).resolves.toEqualTypeOf<RegistryTestResult>();
+
+    dismissHandle(handle);
+  });
+
   it("should report unready and reject opening before a provider mounts", () => {
     const registry = createModalRegistry({ test: registryTestModal });
 
     expect(registry.isReady()).toBe(false);
+
     const openBeforeBinding = (): void => {
       void registry.open("test", { label: "Unbound" });
     };
@@ -66,6 +95,7 @@ describe("createModalRegistry", () => {
     expect(registry.isReady()).toBe(true);
 
     let fallbackHandle: ModalHandle<RegistryTestResult> | undefined;
+
     act(() => {
       fallbackHandle = registry.open("test", { label: "Fallback" });
     });

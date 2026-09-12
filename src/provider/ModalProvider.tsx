@@ -2,7 +2,7 @@ import { assertTrue, isDefined } from "@okyrychenko-dev/type-utils";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { confirmModal as defaultConfirmModal } from "../confirm";
 import { ModalLifecycleContext, createModalLifecycle } from "../lifecycle";
-import { isModalRegistryAttachable } from "../registry/modalRegistryAttachment";
+import { isModalRegistryAttachable } from "../registry/createModalRegistry";
 import { ModalRuntimeConfigContext } from "../runtime";
 import { ModalViewport } from "../viewport";
 import { ModalRegistryBinder } from "./ModalRegistryBinder";

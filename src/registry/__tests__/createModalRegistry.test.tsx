@@ -1,5 +1,5 @@
 import { assertDefined } from "@okyrychenko-dev/type-utils";
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { assertTypeUtilsAssertion } from "../../test/assertTypeUtilsAssertion";
 import { createModalRegistry } from "../createModalRegistry";
@@ -44,11 +44,18 @@ describe("createModalRegistry", () => {
     );
     let latestHandle: ModalHandle<RegistryTestResult> | undefined;
 
+    expect(registry.isReady()).toBe(true);
+
     act(() => {
       latestHandle = registry.open("test", { label: "Latest" });
     });
 
-    expect(screen.getByTestId("second-registry-renderer")).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("second-registry-renderer")).getByRole(
+        "dialog",
+        { name: "Latest" },
+      ),
+    ).toBeInTheDocument();
 
     dismissHandle(latestHandle);
 
@@ -56,14 +63,31 @@ describe("createModalRegistry", () => {
       <RegistryProviders registry={registry} showFirst showSecond={false} />,
     );
 
+    expect(registry.isReady()).toBe(true);
+
     let fallbackHandle: ModalHandle<RegistryTestResult> | undefined;
     act(() => {
       fallbackHandle = registry.open("test", { label: "Fallback" });
     });
 
-    expect(screen.getByTestId("first-registry-renderer")).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("first-registry-renderer")).getByRole(
+        "dialog",
+        { name: "Fallback" },
+      ),
+    ).toBeInTheDocument();
 
     dismissHandle(fallbackHandle);
+
+    rerender(
+      <RegistryProviders
+        registry={registry}
+        showFirst={false}
+        showSecond={false}
+      />,
+    );
+
+    expect(registry.isReady()).toBe(false);
   });
 
   it("should keep the latest provider active after an older provider unmounts", () => {
@@ -82,27 +106,55 @@ describe("createModalRegistry", () => {
       handle = registry.open("test", { label: "Still active" });
     });
 
-    expect(screen.getByTestId("second-registry-renderer")).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("second-registry-renderer")).getByRole(
+        "dialog",
+        { name: "Still active" },
+      ),
+    ).toBeInTheDocument();
 
     dismissHandle(handle);
   });
 
-  it("should route separate registries independently", () => {
+  it("should keep handles attached to the provider that created them", () => {
+    const registry = createModalRegistry({ test: registryTestModal });
+    const { rerender } = render(
+      <RegistryProviders registry={registry} showFirst showSecond={false} />,
+    );
+    let firstHandle: ModalHandle<RegistryTestResult> | undefined;
+
+    act(() => {
+      firstHandle = registry.open("test", { label: "First modal" });
+    });
+
+    rerender(<RegistryProviders registry={registry} showFirst showSecond />);
+
+    let secondHandle: ModalHandle<RegistryTestResult> | undefined;
+
+    act(() => {
+      secondHandle = registry.open("test", { label: "Second modal" });
+    });
+
+    dismissHandle(firstHandle);
+
+    expect(
+      screen.queryByRole("dialog", { name: "First modal" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("dialog", { name: "Second modal" }),
+    ).toBeInTheDocument();
+
+    dismissHandle(secondHandle);
+  });
+
+  it("should preserve independent routing order for separate registries", () => {
     const firstRegistry = createModalRegistry({ test: registryTestModal });
     const secondRegistry = createModalRegistry({ test: registryTestModal });
 
-    render(
+    const { rerender } = render(
       <>
-        <RegistryProviders
-          registry={firstRegistry}
-          showFirst
-          showSecond={false}
-        />
-        <RegistryProviders
-          registry={secondRegistry}
-          showFirst={false}
-          showSecond
-        />
+        <RegistryProviders registry={firstRegistry} showFirst showSecond />
+        <RegistryProviders registry={secondRegistry} showFirst showSecond />
       </>,
     );
 
@@ -110,12 +162,55 @@ describe("createModalRegistry", () => {
     let secondHandle: ModalHandle<RegistryTestResult> | undefined;
 
     act(() => {
-      firstHandle = firstRegistry.open("test", { label: "First" });
-      secondHandle = secondRegistry.open("test", { label: "Second" });
+      firstHandle = firstRegistry.open("test", { label: "First latest" });
+      secondHandle = secondRegistry.open("test", { label: "Second latest" });
     });
 
-    expect(screen.getByTestId("first-registry-renderer")).toBeInTheDocument();
-    expect(screen.getByTestId("second-registry-renderer")).toBeInTheDocument();
+    const latestRenderers = screen.getAllByTestId("second-registry-renderer");
+
+    expect(
+      within(latestRenderers[0]).getByRole("dialog", {
+        name: "First latest",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      within(latestRenderers[1]).getByRole("dialog", {
+        name: "Second latest",
+      }),
+    ).toBeInTheDocument();
+
+    dismissHandle(firstHandle);
+    dismissHandle(secondHandle);
+
+    rerender(
+      <>
+        <RegistryProviders
+          registry={firstRegistry}
+          showFirst
+          showSecond={false}
+        />
+        <RegistryProviders registry={secondRegistry} showFirst showSecond />
+      </>,
+    );
+
+    act(() => {
+      firstHandle = firstRegistry.open("test", { label: "First fallback" });
+      secondHandle = secondRegistry.open("test", { label: "Second remains" });
+    });
+
+    const firstRenderers = screen.getAllByTestId("first-registry-renderer");
+
+    expect(
+      within(firstRenderers[0]).getByRole("dialog", {
+        name: "First fallback",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("second-registry-renderer")).getByRole(
+        "dialog",
+        { name: "Second remains" },
+      ),
+    ).toBeInTheDocument();
 
     dismissHandle(firstHandle);
     dismissHandle(secondHandle);

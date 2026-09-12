@@ -1,6 +1,7 @@
 {
   "name": "@okyrychenko-dev/react-modal-manager",
   "version": "0.1.0",
+  "packageManager": "pnpm@11.21.0",
   "type": "module",
   "description": "Typed modal/dialog lifecycle manager for React",
   "main": "./dist/index.cjs",
@@ -23,11 +24,11 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "clean": "rm -rf dist",
-    "prepublishOnly": "npm run clean && npm run build",
+    "prepublishOnly": "pnpm run clean && pnpm run build",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --ext .ts,.tsx",
     "lint:fix": "eslint src --ext .ts,.tsx --fix",
-    "check": "npm run lint && npm run typecheck && npm run test:run && npm run build",
+    "check": "pnpm run lint && pnpm run typecheck && pnpm run test:run && pnpm run build",
     "format": "prettier --write \"src/**/*.{ts,tsx}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx}\"",
     "test": "vitest",
@@ -87,9 +88,6 @@
     "typescript": "^5.3.3",
     "typescript-eslint": "^8.46.4",
     "vitest": "^4.1.11"
-  },
-  "allowScripts": {
-    "esbuild@0.27.2": true
   },
   "dependencies": {
     "@okyrychenko-dev/type-utils": "^0.1.2"

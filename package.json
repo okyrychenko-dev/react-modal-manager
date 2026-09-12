@@ -71,7 +71,7 @@
     "@types/react-dom": "^19.2.7",
     "@typescript-eslint/eslint-plugin": "^8.46.4",
     "@typescript-eslint/parser": "^8.46.4",
-    "@vitest/coverage-v8": "^4.1.10",
+    "@vitest/coverage-v8": "^4.1.11",
     "eslint": "^9.39.1",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-import": "^2.32.0",
@@ -86,10 +86,10 @@
     "tsup": "^8.5.1",
     "typescript": "^5.3.3",
     "typescript-eslint": "^8.46.4",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.11"
   },
   "allowScripts": {
-    "esbuild@0.27.7": true
+    "esbuild@0.27.2": true
   },
   "dependencies": {
     "@okyrychenko-dev/type-utils": "^0.1.2"

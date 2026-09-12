@@ -3,6 +3,7 @@ import { createElement } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ModalDismissError, ModalRejectError } from "../../errors";
 import { createModalLifecycle } from "../modalLifecycle";
+import type { Optional } from "@okyrychenko-dev/type-utils";
 import type { ModalComponentProps, ModalDefinition } from "../../types";
 import type { ModalLifecycle } from "../modalLifecycle.types";
 
@@ -262,7 +263,7 @@ describe("modal lifecycle", () => {
 
   it("should reject a re-entrant open from terminal disposal publication", async () => {
     const lifecycleReference: { current?: ModalLifecycle } = {};
-    let reentrantOutcome: Promise<unknown> | undefined;
+    let reentrantOutcome: Optional<Promise<unknown>>;
     let attemptedReentrantOpen = false;
     const reentrantPublications: Array<Array<string>> = [];
 

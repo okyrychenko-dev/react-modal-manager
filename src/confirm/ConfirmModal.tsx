@@ -9,6 +9,7 @@ import {
   DEFAULT_CONFIRM_TEXT,
 } from "./ConfirmModal.constants";
 import { getFocusableElements } from "./ConfirmModal.utils";
+import type { Optional } from "@okyrychenko-dev/type-utils";
 import type { KeyboardEvent, ReactNode } from "react";
 import type { ModalComponentProps } from "../types";
 import type {
@@ -110,7 +111,7 @@ export function ConfirmModal(
     }
   };
 
-  let describedBy: string | undefined;
+  let describedBy: Optional<string>;
 
   if (hasDescription) {
     describedBy = descriptionId;

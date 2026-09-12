@@ -1,3 +1,4 @@
+import { assertTrue, hasProperty } from "@okyrychenko-dev/type-utils";
 import { MODAL_REGISTRY_UNKNOWN_KEY_ERROR } from "./createModalRegistry.constants";
 import { createModalRegistryRouter } from "./createModalRegistry.utils";
 import { MODAL_REGISTRY_ATTACH } from "./modalRegistryAttachment";
@@ -19,9 +20,10 @@ export function createModalRegistry<
     input: ModalRegistryInput<TDefinitions[TKey]>,
   ): ReturnType<TDefinitions[TKey]["open"]>;
   function open(key: string, input: unknown): ModalHandle<unknown> {
-    if (!Object.prototype.hasOwnProperty.call(definitions, key)) {
-      throw new Error(`${MODAL_REGISTRY_UNKNOWN_KEY_ERROR}: ${key}`);
-    }
+    assertTrue(
+      hasProperty(definitions, key),
+      () => `${MODAL_REGISTRY_UNKNOWN_KEY_ERROR}: ${key}`,
+    );
 
     return definitions[key].open(router.activeManager(), input);
   }

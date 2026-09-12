@@ -1,3 +1,4 @@
+import { isError, isInstanceOf } from "@okyrychenko-dev/type-utils";
 import { useRef } from "react";
 import {
   ModalDismissError,
@@ -224,7 +225,7 @@ export function DismissExample(): ReactNode {
     void modal
       .open(renameReportModal, { currentName: "Revenue", reportId: "report-1" })
       .catch((error: unknown) => {
-        if (error instanceof ModalDismissError) {
+        if (isInstanceOf(error, ModalDismissError)) {
           document.body.dataset.dismissReason = error.reason;
         }
       });
@@ -248,7 +249,7 @@ export function CloseAllExample(): ReactNode {
           reportId: currentName,
         })
         .catch((error: unknown) => {
-          if (error instanceof ModalDismissError) {
+          if (isInstanceOf(error, ModalDismissError)) {
             const currentCount = Number(
               document.body.dataset.closeAllCount ?? "0",
             );
@@ -281,7 +282,7 @@ export function RejectExample(): ReactNode {
     void modal
       .open(rejectWithStringModal, undefined)
       .catch((error: unknown) => {
-        if (error instanceof ModalRejectError) {
+        if (isInstanceOf(error, ModalRejectError)) {
           document.body.dataset.rejectValue = String(error.value);
         }
       });
@@ -289,7 +290,7 @@ export function RejectExample(): ReactNode {
 
   const handleOpenErrorReject = (): void => {
     void modal.open(rejectWithErrorModal, undefined).catch((error: unknown) => {
-      if (error instanceof Error) {
+      if (isError(error)) {
         document.body.dataset.rejectMessage = error.message;
       }
     });
@@ -323,7 +324,7 @@ export function ExternalDismissExample(): ReactNode {
     document.body.dataset.externalInstanceId = handle.instanceId;
 
     void handle.catch((error: unknown) => {
-      if (error instanceof ModalDismissError) {
+      if (isInstanceOf(error, ModalDismissError)) {
         document.body.dataset.externalDismissReason = error.reason;
       }
     });
@@ -352,7 +353,7 @@ export function ProviderUnmountExample(): ReactNode {
     void modal
       .open(renameReportModal, { currentName: "Revenue", reportId: "report-1" })
       .catch((error: unknown) => {
-        if (error instanceof ModalDismissError) {
+        if (isInstanceOf(error, ModalDismissError)) {
           document.body.dataset.unmountDismissReason = error.reason;
         }
       });

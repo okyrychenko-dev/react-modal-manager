@@ -1,4 +1,4 @@
-import { isDefined } from "@okyrychenko-dev/type-utils";
+import { assertTrue, isDefined } from "@okyrychenko-dev/type-utils";
 import { useEffect, useMemo, useState } from "react";
 import { confirmModal as defaultConfirmModal } from "../confirm";
 import { ModalLifecycleContext, createModalLifecycle } from "../lifecycle";
@@ -19,8 +19,9 @@ export function ModalProvider(props: ModalProviderProps): ReactNode {
     renderer,
   } = props;
 
-  if (isDefined(registry) && !isModalRegistryAttachable(registry)) {
-    throw new Error(
+  if (isDefined(registry)) {
+    assertTrue(
+      isModalRegistryAttachable(registry),
       "ModalProvider registry must be created by createModalRegistry",
     );
   }

@@ -1,3 +1,4 @@
+import { isDefined } from "@okyrychenko-dev/type-utils";
 import { useState } from "react";
 import { ModalProvider, createModal } from "../index";
 import styles from "./modalStoryKit.module.css";
@@ -207,7 +208,7 @@ function CustomConfirmModal(
   return (
     <section aria-label="Custom confirm" className={styles.modal} role="dialog">
       <h2 className={styles.modalTitle}>{input.title}</h2>
-      {input.description !== undefined && (
+      {isDefined(input.description) && (
         <p className={styles.modalText}>{input.description}</p>
       )}
       <div className={styles.modalActions}>

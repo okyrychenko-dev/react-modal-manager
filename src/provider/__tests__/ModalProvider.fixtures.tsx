@@ -7,6 +7,7 @@ import {
   useModalManager,
 } from "../../index";
 import { ModalProvider } from "../ModalProvider";
+import type { Optional } from "@okyrychenko-dev/type-utils";
 import type { ReactNode } from "react";
 import type {
   ConfirmModalParams,
@@ -310,9 +311,8 @@ export function RejectExample(): ReactNode {
 
 export function ExternalDismissExample(): ReactNode {
   const modal = useModalManager();
-  const handleRef = useRef<ModalHandle<RenameReportResult> | undefined>(
-    undefined,
-  );
+  const handleRef =
+    useRef<Optional<ModalHandle<RenameReportResult>>>(undefined);
 
   const handleOpen = (): void => {
     const handle = modal.open(renameReportModal, {

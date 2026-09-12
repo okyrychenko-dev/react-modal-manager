@@ -28,6 +28,7 @@ import {
   customConfirmModal,
   renameReportModal,
 } from "./ModalProvider.fixtures";
+import type { Optional } from "@okyrychenko-dev/type-utils";
 import type { ModalHandle } from "../../index";
 import type { RenameReportResult } from "./ModalProvider.fixtures";
 
@@ -382,7 +383,7 @@ describe("ModalProvider", () => {
   });
 
   it("should keep an open handle bound to the provider that created it", async () => {
-    let firstHandle: ModalHandle<RenameReportResult> | undefined;
+    let firstHandle: Optional<ModalHandle<RenameReportResult>>;
 
     function OpenWithHandleExample({
       currentName,
@@ -823,7 +824,7 @@ describe("ModalProvider", () => {
         showSecondProvider={false}
       />,
     );
-    let firstHandle: ModalHandle<RenameReportResult> | undefined;
+    let firstHandle: Optional<ModalHandle<RenameReportResult>>;
 
     act(() => {
       firstHandle = registry.open("renameReport", {
@@ -836,7 +837,7 @@ describe("ModalProvider", () => {
       <SharedRegistryProviders registry={registry} showSecondProvider />,
     );
 
-    let secondHandle: ModalHandle<RenameReportResult> | undefined;
+    let secondHandle: Optional<ModalHandle<RenameReportResult>>;
 
     act(() => {
       secondHandle = registry.open("renameReport", {

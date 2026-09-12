@@ -7,12 +7,11 @@ import {
   RegistryProviders,
   registryTestModal,
 } from "./createModalRegistry.fixtures";
+import type { Optional } from "@okyrychenko-dev/type-utils";
 import type { ModalHandle } from "../../hooks";
 import type { RegistryTestResult } from "./createModalRegistry.fixtures";
 
-function dismissHandle<TResult>(
-  handle: ModalHandle<TResult> | undefined,
-): void {
+function dismissHandle<TResult>(handle: Optional<ModalHandle<TResult>>): void {
   assertDefined(handle);
 
   act(() => {
@@ -71,7 +70,7 @@ describe("createModalRegistry", () => {
     const { rerender } = render(
       <RegistryProviders registry={registry} showFirst showSecond />,
     );
-    let latestHandle: ModalHandle<RegistryTestResult> | undefined;
+    let latestHandle: Optional<ModalHandle<RegistryTestResult>>;
 
     expect(registry.isReady()).toBe(true);
 
@@ -94,7 +93,7 @@ describe("createModalRegistry", () => {
 
     expect(registry.isReady()).toBe(true);
 
-    let fallbackHandle: ModalHandle<RegistryTestResult> | undefined;
+    let fallbackHandle: Optional<ModalHandle<RegistryTestResult>>;
 
     act(() => {
       fallbackHandle = registry.open("test", { label: "Fallback" });
@@ -130,7 +129,7 @@ describe("createModalRegistry", () => {
       <RegistryProviders registry={registry} showFirst={false} showSecond />,
     );
 
-    let handle: ModalHandle<RegistryTestResult> | undefined;
+    let handle: Optional<ModalHandle<RegistryTestResult>>;
 
     act(() => {
       handle = registry.open("test", { label: "Still active" });
@@ -151,7 +150,7 @@ describe("createModalRegistry", () => {
     const { rerender } = render(
       <RegistryProviders registry={registry} showFirst showSecond={false} />,
     );
-    let firstHandle: ModalHandle<RegistryTestResult> | undefined;
+    let firstHandle: Optional<ModalHandle<RegistryTestResult>>;
 
     act(() => {
       firstHandle = registry.open("test", { label: "First modal" });
@@ -159,7 +158,7 @@ describe("createModalRegistry", () => {
 
     rerender(<RegistryProviders registry={registry} showFirst showSecond />);
 
-    let secondHandle: ModalHandle<RegistryTestResult> | undefined;
+    let secondHandle: Optional<ModalHandle<RegistryTestResult>>;
 
     act(() => {
       secondHandle = registry.open("test", { label: "Second modal" });
@@ -188,8 +187,8 @@ describe("createModalRegistry", () => {
       </>,
     );
 
-    let firstHandle: ModalHandle<RegistryTestResult> | undefined;
-    let secondHandle: ModalHandle<RegistryTestResult> | undefined;
+    let firstHandle: Optional<ModalHandle<RegistryTestResult>>;
+    let secondHandle: Optional<ModalHandle<RegistryTestResult>>;
 
     act(() => {
       firstHandle = firstRegistry.open("test", { label: "First latest" });

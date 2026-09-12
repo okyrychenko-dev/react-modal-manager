@@ -1,3 +1,5 @@
+# pnpm 11 reads project settings from this file; no additional workspace
+# packages or catalogs are declared.
 allowBuilds:
   esbuild: true
 # Keep the repository's newly published runtime dependency installable under

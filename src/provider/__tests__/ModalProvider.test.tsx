@@ -11,6 +11,7 @@ import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createModalRegistry, useModalManager } from "../../index";
+import { assertTypeUtilsAssertion } from "../../test/assertTypeUtilsAssertion";
 import { ModalProvider } from "../ModalProvider";
 import {
   CloseAllExample,
@@ -582,13 +583,18 @@ describe("ModalProvider", () => {
       .spyOn(console, "error")
       .mockImplementation(() => undefined);
 
-    expect(() =>
+    const renderWithInvalidRegistry = (): void => {
       render(
         <ModalProvider registry={{} as never}>
           <div />
         </ModalProvider>,
-      ),
-    ).toThrow("ModalProvider registry must be created by createModalRegistry");
+      );
+    };
+
+    assertTypeUtilsAssertion(
+      renderWithInvalidRegistry,
+      "ModalProvider registry must be created by createModalRegistry",
+    );
 
     consoleError.mockRestore();
   });
@@ -596,10 +602,15 @@ describe("ModalProvider", () => {
   it("should reject an unknown registry key", () => {
     const registry = createModalRegistry({ renameReport: renameReportModal });
 
-    expect(() => {
+    const openUnknownModal = (): void => {
       // @ts-expect-error Deliberately bypass the typed key contract to verify its runtime guard.
       void registry.open("missing", {});
-    }).toThrow("Modal registry does not contain modal: missing");
+    };
+
+    assertTypeUtilsAssertion(
+      openUnknownModal,
+      "Modal registry does not contain modal: missing",
+    );
   });
 
   it("should delegate confirm, dismiss, and close-all through a bound registry", async () => {
@@ -680,12 +691,17 @@ describe("ModalProvider", () => {
   it("should reject registry calls before it is bound to a provider", () => {
     const registry = createModalRegistry({ renameReport: renameReportModal });
 
-    expect(() => {
+    const openBeforeBinding = (): void => {
       void registry.open("renameReport", {
         currentName: "Revenue",
         reportId: "report-1",
       });
-    }).toThrow("Modal registry is not bound to a mounted ModalProvider");
+    };
+
+    assertTypeUtilsAssertion(
+      openBeforeBinding,
+      "Modal registry is not bound to a mounted ModalProvider",
+    );
   });
 
   it("should unbind a registry when its provider unmounts", async () => {
@@ -835,7 +851,12 @@ describe("ModalProvider", () => {
       .spyOn(console, "error")
       .mockImplementation(() => undefined);
 
-    expect(() => render(<OpenRenameModalExample />)).toThrow(
+    const renderWithoutProvider = (): void => {
+      render(<OpenRenameModalExample />);
+    };
+
+    assertTypeUtilsAssertion(
+      renderWithoutProvider,
       "Modal lifecycle must be used within ModalProvider",
     );
 

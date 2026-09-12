@@ -92,6 +92,6 @@
     "esbuild@0.27.7": true
   },
   "dependencies": {
-    "@okyrychenko-dev/type-utils": "^0.1.1"
+    "@okyrychenko-dev/type-utils": "^0.1.2"
   }
 }

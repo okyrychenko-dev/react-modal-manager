@@ -1,3 +1,4 @@
+import { isInstanceOf } from "@okyrychenko-dev/type-utils";
 import { useState } from "react";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 import { ModalDismissError, useModalManager } from "../index";
@@ -21,7 +22,7 @@ function describeRendererResult(result: RenameReportResult): string {
 }
 
 function describeRendererError(error: unknown): string {
-  if (error instanceof ModalDismissError) {
+  if (isInstanceOf(error, ModalDismissError)) {
     return `Dismissed: ${error.reason}`;
   }
 

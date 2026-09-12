@@ -1,6 +1,7 @@
 import { assertDefined } from "@okyrychenko-dev/type-utils";
 import { act, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { assertTypeUtilsAssertion } from "../../test/assertTypeUtilsAssertion";
 import { createModalRegistry } from "../createModalRegistry";
 import {
   RegistryProviders,
@@ -26,7 +27,12 @@ describe("createModalRegistry", () => {
     const registry = createModalRegistry({ test: registryTestModal });
 
     expect(registry.isReady()).toBe(false);
-    expect(() => registry.open("test", { label: "Unbound" })).toThrow(
+    const openBeforeBinding = (): void => {
+      void registry.open("test", { label: "Unbound" });
+    };
+
+    assertTypeUtilsAssertion(
+      openBeforeBinding,
       "Modal registry is not bound to a mounted ModalProvider",
     );
   });

@@ -1,3 +1,4 @@
+import { assertTrue, isNonEmptyArray } from "@okyrychenko-dev/type-utils";
 import { MODAL_CONTROLLER_UNBOUND_ERROR } from "./createModalRegistry.constants";
 import type { ModalManager } from "../hooks";
 import type {
@@ -9,9 +10,7 @@ export function createModalRegistryRouter(): ModalRegistryRouter {
   let attachments: Array<ModalRegistryAttachment> = [];
 
   const activeManager = (): ModalManager => {
-    if (attachments.length === 0) {
-      throw new Error(MODAL_CONTROLLER_UNBOUND_ERROR);
-    }
+    assertTrue(isNonEmptyArray(attachments), MODAL_CONTROLLER_UNBOUND_ERROR);
 
     return attachments[attachments.length - 1].manager;
   };
@@ -23,5 +22,5 @@ export function createModalRegistryRouter(): ModalRegistryRouter {
       attachments = attachments.filter((candidate) => candidate !== attachment);
     };
   };
-  return { activeManager, bind, isReady: () => attachments.length > 0 };
+  return { activeManager, bind, isReady: () => isNonEmptyArray(attachments) };
 }

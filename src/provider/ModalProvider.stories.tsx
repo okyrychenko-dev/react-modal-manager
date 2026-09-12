@@ -1,3 +1,4 @@
+import { isInstanceOf } from "@okyrychenko-dev/type-utils";
 import { useMemo, useState } from "react";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 import {
@@ -27,7 +28,7 @@ function describeRenameResult(result: RenameReportResult): string {
 }
 
 function describeRenameError(error: unknown): string {
-  if (error instanceof ModalDismissError) {
+  if (isInstanceOf(error, ModalDismissError)) {
     return `Dismissed: ${error.reason}`;
   }
 
@@ -92,7 +93,7 @@ function StackedModalDemo(): ReactElement {
   const markDismissed = (error: unknown): void => {
     setDismissedCount(increment);
 
-    if (error instanceof ModalDismissError) {
+    if (isInstanceOf(error, ModalDismissError)) {
       setLastDismissReason(error.reason);
     }
   };

@@ -1,4 +1,4 @@
-import { isError } from "@okyrychenko-dev/type-utils";
+import { isDefined, isError } from "@okyrychenko-dev/type-utils";
 import { createElement } from "react";
 import { ModalDismissError, ModalRejectError } from "../errors";
 import type {
@@ -53,7 +53,7 @@ export function createModalLifecycle(
   const removeInstance = (instanceId: ModalInstanceId): void => {
     const timer = removalTimers.get(instanceId);
 
-    if (timer !== undefined) {
+    if (isDefined(timer)) {
       globalThis.clearTimeout(timer);
       removalTimers.delete(instanceId);
     }
@@ -74,7 +74,7 @@ export function createModalLifecycle(
       (candidate) => candidate.instanceId === instanceId,
     );
 
-    if (instance === undefined || instance.status === "closing") {
+    if (!isDefined(instance) || instance.status === "closing") {
       return;
     }
 

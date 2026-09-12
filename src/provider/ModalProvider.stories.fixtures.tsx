@@ -1,3 +1,4 @@
+import { isInstanceOf } from "@okyrychenko-dev/type-utils";
 import { useEffect, useRef, useState } from "react";
 import { ModalDismissError, ModalRejectError, useModalManager } from "../index";
 import {
@@ -9,7 +10,7 @@ import {
 import type { ReactElement } from "react";
 
 function describeDismissal(error: unknown): string {
-  if (error instanceof ModalDismissError) {
+  if (isInstanceOf(error, ModalDismissError)) {
     return `Dismissed: ${error.reason}`;
   }
 
@@ -17,7 +18,7 @@ function describeDismissal(error: unknown): string {
 }
 
 function describeRejection(error: unknown): string {
-  if (error instanceof ModalRejectError) {
+  if (isInstanceOf(error, ModalRejectError)) {
     return `Wrapped reject value: ${String(error.value)}`;
   }
 

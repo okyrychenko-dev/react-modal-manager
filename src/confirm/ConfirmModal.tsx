@@ -1,3 +1,8 @@
+import {
+  isDefined,
+  isInstanceOf,
+  isNonEmptyArray,
+} from "@okyrychenko-dev/type-utils";
 import { useEffect, useId, useRef } from "react";
 import {
   DEFAULT_CANCEL_TEXT,
@@ -20,7 +25,7 @@ export function ConfirmModal(
   const confirmText = input.confirmText ?? DEFAULT_CONFIRM_TEXT;
   const variant = input.variant ?? "default";
   const dismissible = input.dismissible !== false;
-  const hasDescription = input.description !== undefined;
+  const hasDescription = isDefined(input.description);
   const titleId = useId();
   const descriptionId = useId();
   const dialogRef = useRef<HTMLElement>(null);
@@ -40,7 +45,7 @@ export function ConfirmModal(
     initialFocusRef.current?.focus();
 
     return () => {
-      if (previouslyFocused instanceof HTMLElement) {
+      if (isInstanceOf(previouslyFocused, HTMLElement)) {
         previouslyFocused.focus();
       }
     };
@@ -68,13 +73,13 @@ export function ConfirmModal(
   };
 
   const handleTab = (event: KeyboardEvent<HTMLElement>): void => {
-    if (dialogRef.current === null) {
+    if (!isDefined(dialogRef.current)) {
       return;
     }
 
     const focusable = getFocusableElements(dialogRef.current);
 
-    if (focusable.length === 0) {
+    if (!isNonEmptyArray(focusable)) {
       return;
     }
 

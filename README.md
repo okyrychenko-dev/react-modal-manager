@@ -618,13 +618,14 @@ react-action-guard-dialog
 ## Development
 
 ```bash
-npm install
-npm run typecheck
-npm run lint
-npm run test:run
-npm run test:coverage
-npm run build
-npm run build-storybook
+pnpm install --frozen-lockfile
+pnpm run typecheck
+pnpm run lint
+pnpm run format:check
+pnpm run test:run
+pnpm run test:coverage
+pnpm run build
+pnpm run build-storybook
 ```
 
 ## License

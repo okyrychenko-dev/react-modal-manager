@@ -1,5 +1,5 @@
 import { assertTrue, isDefined } from "@okyrychenko-dev/type-utils";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { confirmModal as defaultConfirmModal } from "../confirm";
 import { ModalLifecycleContext, createModalLifecycle } from "../lifecycle";
 import { isModalRegistryAttachable } from "../registry/modalRegistryAttachment";
@@ -32,17 +32,26 @@ export function ModalProvider(props: ModalProviderProps): ReactNode {
   );
 
   const [lifecycle] = useState(() => createModalLifecycle({ closeDelayMs }));
+  const lifecycleEffectGeneration = useRef(0);
 
   useEffect(() => {
     lifecycle.setCloseDelayMs(closeDelayMs);
   }, [closeDelayMs, lifecycle]);
 
-  useEffect(
-    () => () => {
-      lifecycle.dispose();
-    },
-    [lifecycle],
-  );
+  useEffect(() => {
+    lifecycleEffectGeneration.current += 1;
+
+    return () => {
+      lifecycleEffectGeneration.current += 1;
+      const cleanupGeneration = lifecycleEffectGeneration.current;
+
+      globalThis.queueMicrotask(() => {
+        if (lifecycleEffectGeneration.current === cleanupGeneration) {
+          lifecycle.dispose();
+        }
+      });
+    };
+  }, [lifecycle]);
 
   return (
     <ModalLifecycleContext.Provider value={lifecycle}>

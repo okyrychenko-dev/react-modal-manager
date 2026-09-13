@@ -44,16 +44,24 @@ const app = (
 
 ### Compared to [`@ebay/nice-modal-react`](https://github.com/eBay/nice-modal-react)
 
-| | `react-modal-manager` | `nice-modal-react` |
-| --- | --- | --- |
-| Result typing | `Promise<TResult>`, inferred from the modal definition or registry key | promise result is not coupled to a registered modal's result type |
-| State scope | independent lifecycle per `ModalProvider` | global modal identity and dispatch model |
-| Open from anywhere | typed registry (LIFO provider stack) | global `NiceModal.show(id)` |
-| Built-in confirm | typed `ConfirmModalResult` | none |
-| UI coupling | UI-agnostic `renderer` seam | you render it yourself |
-| Concepts to first modal | 1 (`confirm`) — or define → register → open for custom modals | 1 (`show`) |
+Revalidated **2026-09-13** against this package at **0.1.0** (`0004c89`) and the current stable [`@ebay/nice-modal-react` 1.2.13](https://www.npmjs.com/package/@ebay/nice-modal-react/v/1.2.13). “Verified behavior” below means an executable public-surface check; “architecture” describes source structure and is not itself a consumer guarantee.
 
-**Honest trade-off:** there is no "show a modal by string id from literally anywhere" without importing a typed `ModalDefinition` or a registry. That is the deliberate price of end-to-end type safety, not a missing feature.
+| Area | `react-modal-manager` | `nice-modal-react` | Evidence kind |
+| --- | --- | --- | --- |
+| Input and result typing | A definition or registry key couples input to `Promise<TResult>` | Component props are inferred; `show()` result is caller-selected and handlers expose `Promise<unknown>` | Verified declarations: [local packed-consumer fixture](scripts/package-consumer.typecheck.ts), [Nice Modal 1.2.13 declarations](https://unpkg.com/@ebay/nice-modal-react@1.2.13/lib/esm/index.d.ts) |
+| Lifecycle correctness | Per-instance handles; resolve, reject, and dismiss settle once; optional closing phase precedes removal | Promise-based `show`; separate `hide` and `remove`; UI-library helpers connect removal to exit callbacks | Verified local behavior: [lifecycle tests](src/lifecycle/__tests__/modalLifecycle.test.ts); documented competitor behavior: [Nice Modal usage and helpers](https://github.com/eBay/nice-modal-react/tree/1.2.13#usage) |
+| Provider isolation | Nested, adjacent, and independent roots own isolated lifecycle state | Each provider creates reducer state, while imperative dispatch, registrations, and promise callbacks are module-level | Verified local behavior: [root tests](src/provider/__tests__/ModalProvider.roots.test.tsx); competitor architecture: [1.2.13 source](https://github.com/eBay/nice-modal-react/blob/1.2.13/src/index.tsx) |
+| React compatibility | Declares React 18 and 19 and runs the same root/Strict Mode suite against both | Declares React and React DOM `>16.8.0`; the published package was developed with React 17 | Verified local matrix: [CI](.github/workflows/ci.yml); published competitor metadata: [package manifest](https://unpkg.com/@ebay/nice-modal-react@1.2.13/package.json) |
+| SSR and RSC | Provider server rendering, separate-request isolation, and hydration are tested; RSC usage has a compiled Client Component example | No SSR, hydration, or React Server Components contract is documented in the 1.2.13 README | Verified local behavior: [SSR tests](src/provider/__tests__/ModalProvider.ssr.test.tsx) and [RSC-style fixture](examples/next-app-router-provider.typecheck.tsx); competitor documentation: [1.2.13 README](https://github.com/eBay/nice-modal-react/tree/1.2.13) |
+| Imperative access | A typed registry opens outside React after being bound to a provider; keys, input, and results are inferred | `NiceModal.show(component, props)` or a registered string id can be called directly after a provider establishes the module-level dispatch | Verified local behavior: [registry tests](src/registry/__tests__/createModalRegistry.test.tsx); documented competitor behavior: [component and id APIs](https://github.com/eBay/nice-modal-react/tree/1.2.13#using-your-modal-component) |
+| Rendering independence | Lifecycle renders modal definitions through a replaceable wrapper; no portal, overlay, CSS, or design-system dependency | Supplies no dialog markup and wraps consumer components; includes helpers for Ant Design, MUI, and React Bootstrap lifecycles | Public interfaces: [local renderer types](src/types/modal.ts), [Nice Modal helpers](https://unpkg.com/@ebay/nice-modal-react@1.2.13/lib/esm/index.d.ts) |
+| Accessibility composition | Built-in confirmation provides dialog semantics, initial focus, focus trapping, and safe destructive focus; custom modals/renderers remain consumer-owned | Accessibility belongs entirely to the consumer’s chosen modal component or UI library | Verified local behavior: [confirmation tests](src/confirm/__tests__/ConfirmModal.test.tsx); documented competitor scope: [“not a React modal component”](https://github.com/eBay/nice-modal-react/tree/1.2.13#nice-modal) |
+| First-use ergonomics | `confirm()` is the shortest path; custom flows define a modal and open it directly or through a registry | `show(component, props)` is the shortest path; string access adds `register(id, component)` | Documented public APIs: [this README](#quick-start), [Nice Modal usage](https://github.com/eBay/nice-modal-react/tree/1.2.13#usage) |
+| Package cost | Recorded minimal `createModal` consumer: **2,052 B / 1,042 B gzip**; React is the only peer and `type-utils` the only runtime dependency | Reproduced minimal named-`show` consumer: **758 B / 473 B gzip**; zero runtime dependencies, with React and React DOM as peers | Reproduce with [`package:check`](scripts/check-packed-package.mjs) and [`competitive:check`](scripts/check-competitive-package.mjs). The entry points differ, so these are package-cost observations, not a universal size ranking. |
+| Performance | Optimized-build raw samples and summaries cover mount, unmount, open/render, settlement, delayed removal, stacking, and registry routing | No like-for-like run was made against the competitor | Reproducible local evidence: [`benchmark:lifecycle`](scripts/benchmark-lifecycle.mjs). No performance winner is claimed. |
+| Maintenance status | 0.1.0 is the version evaluated on this repository’s current main branch | 1.2.13 was published 2023-10-03; it remains the npm `latest` release on the evaluation date | Release evidence: [local manifest](package.json), [npm version](https://www.npmjs.com/package/@ebay/nice-modal-react/v/1.2.13), [GitHub release](https://github.com/eBay/nice-modal-react/releases/tag/1.2.13) |
+
+The main trade-off is deliberate: this package does not provide unchecked `show("any-string")` routing. Imperative callers import a typed definition or use a typed registry, and a registry must be bound to a mounted provider. Nice Modal’s global component/id calls require less setup and can be more convenient when that trade-off is acceptable. Conversely, this package’s provider ownership, result inference, SSR behavior, and built-in confirmation are explicit tested contracts rather than conclusions drawn only from implementation structure.
 
 ## Installation
 
@@ -123,9 +131,16 @@ interface RenameInput {
   currentName: string;
 }
 
-type RenameResult =
-  | { status: "renamed"; name: string }
-  | { status: "cancelled" };
+interface RenameSucceededResult {
+  status: "renamed";
+  name: string;
+}
+
+interface RenameCancelledResult {
+  status: "cancelled";
+}
+
+type RenameResult = RenameSucceededResult | RenameCancelledResult;
 
 function RenameModal({ close, input }: ModalComponentProps<RenameInput, RenameResult>) {
   // `input` is RenameInput. `close` only accepts a RenameResult.
@@ -379,18 +394,31 @@ function TailwindRenderer({ children, modal }: ModalRendererProps) {
 </ModalProvider>;
 ```
 
-### shadcn/ui
+### shadcn/ui (Radix)
 
-Use a shadcn `Dialog` as the renderer shell, so every opened modal is wrapped in the design system's overlay and animations while your modal components stay focused on content.
+Use the current [Radix-based shadcn `Dialog`](https://ui.shadcn.com/docs/components/radix/dialog) as a controlled renderer shell, so every opened modal is wrapped in the design system's overlay and animations. Route `onOpenChange(false)` back to the modal manager so Escape, outside interaction, and shadcn's generated close button dismiss the correct instance.
 
 ```tsx
+import {
+  type ModalRendererProps,
+  useModalManager,
+} from "@okyrychenko-dev/react-modal-manager";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import type { ModalRendererProps } from "@okyrychenko-dev/react-modal-manager";
 
 function ShadcnRenderer({ children, modal }: ModalRendererProps) {
-  // `open` stays true while mounted; the library removes the instance after closeDelayMs.
+  const modalManager = useModalManager();
+
+  function handleOpenChange(open: boolean) {
+    if (!open && modal.status === "open") {
+      modalManager.dismiss(modal.instanceId);
+    }
+  }
+
   return (
-    <Dialog open={modal.status === "open"}>
+    <Dialog
+      open={modal.status === "open"}
+      onOpenChange={handleOpenChange}
+    >
       <DialogContent>{children}</DialogContent>
     </Dialog>
   );
@@ -401,7 +429,11 @@ function ShadcnRenderer({ children, modal }: ModalRendererProps) {
 </ModalProvider>;
 ```
 
-You can also build a fully custom confirm modal on shadcn's `AlertDialog` and pass it via the `confirmModal` prop — see below.
+This provider-wide renderer is for content-only custom modals. Each modal rendered inside `DialogContent` must compose shadcn's `DialogHeader`, `DialogTitle`, and, when useful, `DialogDescription`; otherwise Radix cannot establish the accessible title/description relationship.
+
+Do not use the built-in confirmation modal with this renderer: it already owns its dialog semantics, so wrapping it in `DialogContent` would create nested dialogs and omit Radix's required `DialogTitle`. If this provider calls `confirm()`, pass a content-only custom `confirmModal` that composes `DialogHeader`, `DialogTitle`, and `DialogDescription` inside this existing shell. Do not nest another `Dialog` or `AlertDialog` in it.
+
+Match `closeDelayMs` to your generated component's exit-animation duration. The example uses 200 ms, matching the current [Radix-based component's `duration-200`](https://github.com/shadcn-ui/ui/blob/main/apps/v4/registry/new-york-v4/ui/dialog.tsx).
 
 ### React Hook Form inside a modal
 

@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "paths": {
+      "@okyrychenko-dev/react-modal-manager": ["./src/index.ts"]
+    },
+    "rootDir": "."
+  },
+  "include": ["examples/**/*.typecheck.ts", "examples/**/*.typecheck.tsx"]
+}

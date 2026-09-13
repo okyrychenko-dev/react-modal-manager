@@ -27,6 +27,7 @@
   ],
   "scripts": {
     "build": "tsup",
+    "benchmark:lifecycle": "pnpm run build && NODE_ENV=production node scripts/benchmark-lifecycle.mjs",
     "package:check": "node scripts/check-packed-package.mjs && attw --pack . && publint",
     "release:check": "pnpm run check && pnpm run build-storybook && pnpm run package:check",
     "dev": "tsup --watch",

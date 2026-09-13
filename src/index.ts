@@ -35,4 +35,5 @@ export type {
   ModalId,
   ModalInstanceId,
   ModalInstanceStatus,
+  ModalOpenArgs,
 } from "./types";

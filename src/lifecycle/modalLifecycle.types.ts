@@ -5,6 +5,7 @@ import type {
   ModalId,
   ModalInstanceId,
   ModalInstanceStatus,
+  ModalOpenArgs,
 } from "../types";
 
 export interface ModalLifecycleInstance {
@@ -35,7 +36,7 @@ export interface ModalLifecycle extends ModalLifecycleObservation {
   dismiss: (instanceId: ModalInstanceId, reason?: ModalDismissReason) => void;
   open: <TInput, TResult>(
     modal: ModalDefinition<TInput, TResult>,
-    input: TInput,
+    ...args: ModalOpenArgs<TInput>
   ) => ModalLifecycleHandle<TResult>;
   setCloseDelayMs: (closeDelayMs: number) => void;
 }

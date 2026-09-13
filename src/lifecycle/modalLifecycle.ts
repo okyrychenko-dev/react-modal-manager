@@ -5,6 +5,7 @@ import type {
   ModalDefinition,
   ModalDismissReason,
   ModalInstanceId,
+  ModalOpenArgs,
 } from "../types";
 import type {
   CreateModalLifecycleOptions,
@@ -139,8 +140,9 @@ export function createModalLifecycle(
     getServerSnapshot: () => serverSnapshot,
     open: <TInput, TResult>(
       modal: ModalDefinition<TInput, TResult>,
-      input: TInput,
+      ...args: ModalOpenArgs<TInput>
     ): ModalLifecycleHandle<TResult> => {
+      const input = args[0];
       const instanceId = `modal-${String(nextInstanceIndex)}`;
       nextInstanceIndex += 1;
 

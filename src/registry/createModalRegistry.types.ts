@@ -1,7 +1,11 @@
 import type { ModalHandle, ModalManager } from "../hooks";
+import type { ModalOpenArgs } from "../types";
 
 export interface ModalRegistryEntry<TInput, TResult> {
-  open(manager: ModalManager, input: TInput): ModalHandle<TResult>;
+  open(
+    manager: ModalManager,
+    ...args: ModalOpenArgs<TInput>
+  ): ModalHandle<TResult>;
 }
 
 export type ModalRegistryDefinitions = Readonly<
@@ -33,6 +37,6 @@ export interface ModalRegistry<
   dismiss: ModalManager["dismiss"];
   open: <TKey extends keyof TDefinitions & string>(
     key: TKey,
-    input: ModalRegistryInput<TDefinitions[TKey]>,
+    ...args: ModalOpenArgs<ModalRegistryInput<TDefinitions[TKey]>>
   ) => ReturnType<TDefinitions[TKey]["open"]>;
 }

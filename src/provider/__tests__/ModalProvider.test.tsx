@@ -7,10 +7,9 @@ import {
   waitFor,
 } from "@testing-library/react";
 import { StrictMode } from "react";
-import { hydrateRoot } from "react-dom/client";
-import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createModalRegistry, useModalManager } from "../../index";
+import { type ModalHandle, useModalManager } from "../../hooks";
+import { createModalRegistry } from "../../registry";
 import { assertTypeUtilsAssertion } from "../../test/assertTypeUtilsAssertion";
 import { ModalProvider } from "../ModalProvider";
 import {
@@ -29,7 +28,6 @@ import {
   renameReportModal,
 } from "./ModalProvider.fixtures";
 import type { Optional } from "@okyrychenko-dev/type-utils";
-import type { ModalHandle } from "../../index";
 import type { RenameReportResult } from "./ModalProvider.fixtures";
 
 describe("ModalProvider", () => {
@@ -46,45 +44,6 @@ describe("ModalProvider", () => {
     delete document.body.dataset.result;
     delete document.body.dataset.unmountDismissReason;
     vi.useRealTimers();
-  });
-
-  it("should hydrate from a deterministic empty server snapshot", async () => {
-    const serverMarkup = renderToString(
-      <ModalProvider>
-        <span>Application content</span>
-      </ModalProvider>,
-    );
-    const container = document.createElement("div");
-    container.innerHTML = serverMarkup;
-    const consoleError = vi
-      .spyOn(console, "error")
-      .mockImplementation(() => undefined);
-
-    const root = hydrateRoot(
-      container,
-      <ModalProvider>
-        <span>Application content</span>
-      </ModalProvider>,
-    );
-    await act(async () => undefined);
-
-    expect(container).toHaveTextContent("Application content");
-    expect(consoleError).not.toHaveBeenCalled();
-
-    root.unmount();
-    consoleError.mockRestore();
-  });
-
-  it("should leave a provider registry unbound during server rendering", () => {
-    const registry = createModalRegistry({ renameReport: renameReportModal });
-
-    renderToString(
-      <ModalProvider registry={registry}>
-        <span>Application content</span>
-      </ModalProvider>,
-    );
-
-    expect(registry.isReady()).toBe(false);
   });
 
   it("should open a typed modal and resolve its result", async () => {

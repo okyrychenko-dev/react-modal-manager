@@ -353,6 +353,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
 Modal components and any component calling `useModalManager()` must also be Client Components (`"use client"`).
 
+Opening modal work while React is rendering on the server is unsupported. The server snapshot is intentionally empty: open modals from event handlers, effects, command handlers, or other client-side code after hydration. A registry likewise remains unbound until its provider's client effect runs, so check `registry.isReady()` before dispatching startup commands from outside React.
+
 ### Tailwind CSS
 
 Provide the overlay and centering through the `renderer`, and style modal components with Tailwind utilities.

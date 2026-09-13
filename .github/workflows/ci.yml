@@ -62,6 +62,9 @@ jobs:
       - name: Typecheck
         run: pnpm run typecheck
 
+      - name: Typecheck public examples
+        run: pnpm run typecheck:examples
+
       - name: Lint
         run: pnpm run lint
 

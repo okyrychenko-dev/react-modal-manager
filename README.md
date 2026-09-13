@@ -57,7 +57,7 @@ Revalidated **2026-09-13** against this package at **0.1.0** (`0004c89`) and the
 | Rendering independence | Lifecycle renders modal definitions through a replaceable wrapper; no portal, overlay, CSS, or design-system dependency | Supplies no dialog markup and wraps consumer components; includes helpers for Ant Design, MUI, and React Bootstrap lifecycles | Public interfaces: [local renderer types](src/types/modal.ts), [Nice Modal helpers](https://unpkg.com/@ebay/nice-modal-react@1.2.13/lib/esm/index.d.ts) |
 | Accessibility composition | Built-in confirmation provides dialog semantics, initial focus, focus trapping, and safe destructive focus; custom modals/renderers remain consumer-owned | Accessibility belongs entirely to the consumer’s chosen modal component or UI library | Verified local behavior: [confirmation tests](src/confirm/__tests__/ConfirmModal.test.tsx); documented competitor scope: [“not a React modal component”](https://github.com/eBay/nice-modal-react/tree/1.2.13#nice-modal) |
 | First-use ergonomics | `confirm()` is the shortest path; custom flows define a modal and open it directly or through a registry | `show(component, props)` is the shortest path; string access adds `register(id, component)` | Documented public APIs: [this README](#quick-start), [Nice Modal usage](https://github.com/eBay/nice-modal-react/tree/1.2.13#usage) |
-| Package cost | Recorded minimal `createModal` consumer: **2,052 B / 1,042 B gzip**; React is the only peer and `type-utils` the only runtime dependency | Reproduced minimal named-`show` consumer: **758 B / 473 B gzip**; zero runtime dependencies, with React and React DOM as peers | Reproduce with [`package:check`](scripts/check-packed-package.mjs) and [`competitive:check`](scripts/check-competitive-package.mjs). The entry points differ, so these are package-cost observations, not a universal size ranking. |
+| Package cost | Recorded minimal `createModal` consumer: **2,058 B / 1,044 B gzip**; React is the only peer and `type-utils` the only runtime dependency | Reproduced minimal named-`show` consumer: **758 B / 473 B gzip**; zero runtime dependencies, with React and React DOM as peers | Reproduce with [`package:check`](scripts/check-packed-package.mjs) and [`competitive:check`](scripts/check-competitive-package.mjs). The entry points differ, so these are package-cost observations, not a universal size ranking. |
 | Performance | Optimized-build raw samples and summaries cover mount, unmount, open/render, settlement, delayed removal, stacking, and registry routing | No like-for-like run was made against the competitor | Reproducible local evidence: [`benchmark:lifecycle`](scripts/benchmark-lifecycle.mjs). No performance winner is claimed. |
 | Maintenance status | 0.1.0 is the version evaluated on this repository’s current main branch | 1.2.13 was published 2023-10-03; it remains the npm `latest` release on the evaluation date | Release evidence: [local manifest](package.json), [npm version](https://www.npmjs.com/package/@ebay/nice-modal-react/v/1.2.13), [GitHub release](https://github.com/eBay/nice-modal-react/releases/tag/1.2.13) |
 
@@ -118,6 +118,20 @@ function ReportsPage() {
   return <button onClick={handleDelete}>Delete</button>;
 }
 ```
+
+## Adoption Path
+
+Start with the smallest API that solves the current problem, then add the next capability only when the application needs it:
+
+1. Use [`confirm()`](#confirmation-modals) for a typed yes/no decision.
+2. Define a [typed custom modal](#typed-modal-flow) when the flow needs application-specific input, UI, or results.
+3. Keep the returned [modal handle](#typed-modal-flow) when the caller must identify or dismiss that exact instance.
+4. Add a [typed registry](#typed-modal-registry) for commands that originate outside React.
+5. Supply a [custom renderer](#custom-renderer) for overlays, portals, design-system shells, and exit animations.
+6. Split independent application areas into [provider scopes](#provider-scope).
+7. Follow the [Next.js App Router guidance](#nextjs-app-router-ssr) for SSR and React Server Components.
+
+The complete path is compile-checked as a package consumer in [`examples/adoption-paths.typecheck.tsx`](examples/adoption-paths.typecheck.tsx). The client boundary used by a server layout is checked separately in [`examples/next-app-router-provider.typecheck.tsx`](examples/next-app-router-provider.typecheck.tsx). Interactive equivalents live in Storybook under `Components/confirmModal`, `Context/ModalProvider`, and `Components/ModalViewport`.
 
 ## Type Safety
 
@@ -279,6 +293,30 @@ export async function renameFromAction(reportId: string, currentName: string) {
 The registry key is type-checked, and TypeScript infers the required input and the returned result from the modal registered under that key. `modals.open` from outside the React tree targets the most recently mounted `ModalProvider` bound to that registry (providers form a LIFO stack and fall back on unmount).
 
 Before a provider binds the registry, `modals.isReady()` is `false` and registry operations throw. Binding happens in a client effect, so a registry is intentionally unbound during server rendering.
+
+## Provider Scope
+
+Each `ModalProvider` owns an independent lifecycle. `useModalManager()` always targets the nearest provider, so adjacent or nested application areas can keep their modal state, renderers, and teardown behavior isolated. A handle remains bound to the provider that created it, even when another provider opens the same modal definition.
+
+Use a separate registry for each strictly isolated scope. Binding the same registry to multiple providers is a deliberate routing mechanism instead: external calls target the most recently mounted binding and fall back to the previous binding when it unmounts.
+
+```tsx
+const accountModals = createModalRegistry({ rename: renameReportModal });
+const workspaceModals = createModalRegistry({ rename: renameReportModal });
+
+function App() {
+  return (
+    <>
+      <ModalProvider registry={accountModals} renderer={AccountModalRenderer}>
+        <AccountSettings />
+      </ModalProvider>
+      <ModalProvider registry={workspaceModals} renderer={WorkspaceModalRenderer}>
+        <Workspace />
+      </ModalProvider>
+    </>
+  );
+}
+```
 
 ## Confirmation Modals
 

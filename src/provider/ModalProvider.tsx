@@ -1,13 +1,14 @@
 import { assertTrue, isDefined } from "@okyrychenko-dev/type-utils";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { confirmModal as defaultConfirmModal } from "../confirm";
-import { ModalLifecycleContext, createModalLifecycle } from "../lifecycle";
+import { useMemo } from "react";
+import { confirmModal as defaultConfirmModal } from "../confirm/builtInConfirmModal";
+import { ModalLifecycleContext } from "../lifecycle/ModalLifecycleContext";
 import { isModalRegistryAttachable } from "../registry/createModalRegistry";
-import { ModalRuntimeConfigContext } from "../runtime";
-import { ModalViewport } from "../viewport";
+import { ModalRuntimeConfigContext } from "../runtime/ModalRuntimeConfigContext";
+import { ModalViewport } from "../viewport/ModalViewport";
 import { ModalRegistryBinder } from "./ModalRegistryBinder";
+import { useModalLifecycleOwner } from "./useModalLifecycleOwner";
 import type { ReactNode } from "react";
-import type { ModalRuntimeConfig } from "../runtime";
+import type { ModalRuntimeConfig } from "../runtime/ModalRuntimeConfigContext.types";
 import type { ModalProviderProps } from "./ModalProvider.types";
 
 export function ModalProvider(props: ModalProviderProps): ReactNode {
@@ -31,27 +32,7 @@ export function ModalProvider(props: ModalProviderProps): ReactNode {
     [closeDelayMs, confirmModal],
   );
 
-  const [lifecycle] = useState(() => createModalLifecycle({ closeDelayMs }));
-  const lifecycleEffectGeneration = useRef(0);
-
-  useEffect(() => {
-    lifecycle.setCloseDelayMs(closeDelayMs);
-  }, [closeDelayMs, lifecycle]);
-
-  useEffect(() => {
-    lifecycleEffectGeneration.current += 1;
-
-    return () => {
-      lifecycleEffectGeneration.current += 1;
-      const cleanupGeneration = lifecycleEffectGeneration.current;
-
-      globalThis.queueMicrotask(() => {
-        if (lifecycleEffectGeneration.current === cleanupGeneration) {
-          lifecycle.dispose();
-        }
-      });
-    };
-  }, [lifecycle]);
+  const lifecycle = useModalLifecycleOwner(closeDelayMs);
 
   return (
     <ModalLifecycleContext.Provider value={lifecycle}>

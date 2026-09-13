@@ -9,9 +9,14 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
     }
   },
   "sideEffects": false,
@@ -22,16 +27,18 @@
   ],
   "scripts": {
     "build": "tsup",
+    "package:check": "node scripts/check-packed-package.mjs && attw --pack . && publint",
+    "release:check": "pnpm run check && pnpm run build-storybook && pnpm run package:check",
     "dev": "tsup --watch",
     "clean": "rm -rf dist",
     "prepublishOnly": "pnpm run clean && pnpm run build",
     "typecheck": "tsc --noEmit",
     "typecheck:examples": "tsc --project tsconfig.examples.json",
-    "lint": "eslint src --ext .ts,.tsx",
+    "lint": "eslint src scripts --ext .ts,.tsx,.mjs",
     "lint:fix": "eslint src --ext .ts,.tsx --fix",
-    "check": "pnpm run lint && pnpm run typecheck && pnpm run typecheck:examples && pnpm run test:run && pnpm run build",
-    "format": "prettier --write \"src/**/*.{ts,tsx}\"",
-    "format:check": "prettier --check \"src/**/*.{ts,tsx}\"",
+    "check": "pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm run typecheck:examples && pnpm run test:run && pnpm run build",
+    "format": "prettier --write \"src/**/*.{ts,tsx}\" \"scripts/**/*.{mjs,ts}\" \"*.{json,ts,mjs}\" \".github/workflows/*.yml\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx}\" \"scripts/**/*.{mjs,ts}\" \"*.{json,ts,mjs}\" \".github/workflows/*.yml\"",
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
@@ -62,6 +69,7 @@
     "react": "^18.0.0 || ^19.0.0"
   },
   "devDependencies": {
+    "@arethetypeswrong/cli": "^0.18.5",
     "@eslint/js": "^9.39.1",
     "@storybook/addon-docs": "10.2.16",
     "@storybook/react-vite": "10.2.16",
@@ -74,6 +82,7 @@
     "@typescript-eslint/eslint-plugin": "^8.46.4",
     "@typescript-eslint/parser": "^8.46.4",
     "@vitest/coverage-v8": "^4.1.11",
+    "esbuild": "0.27.7",
     "eslint": "^9.39.1",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-import": "^2.32.0",
@@ -81,6 +90,7 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "happy-dom": "^20.0.10",
     "prettier": "^3.6.2",
+    "publint": "^0.3.24",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "remark-gfm": "^4.0.1",

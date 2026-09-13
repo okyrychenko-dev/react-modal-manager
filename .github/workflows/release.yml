@@ -25,14 +25,8 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Typecheck
-        run: pnpm run typecheck
-
-      - name: Lint
-        run: pnpm run lint
-
-      - name: Test
-        run: pnpm run test:run
+      - name: Verify release contract
+        run: pnpm run release:check
 
       - name: Verify tag matches package.json version
         run: |
@@ -42,9 +36,6 @@ jobs:
             echo "Tag v$TAG_VERSION does not match package.json version $PKG_VERSION"
             exit 1
           fi
-
-      - name: Build
-        run: pnpm run build
 
       - name: Publish to npm
         # Tag checkouts use a detached HEAD, so pnpm's branch check cannot apply;

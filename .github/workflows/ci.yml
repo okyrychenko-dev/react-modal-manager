@@ -11,6 +11,35 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  react-compatibility:
+    name: React ${{ matrix.react }} compatibility
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - react: 18.0.0
+            react-dom: 18.0.0
+          - react: 19.2.0
+            react-dom: 19.2.0
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Install React compatibility target
+        run: pnpm add --save-dev --save-exact --lockfile=false react@${{ matrix.react }} react-dom@${{ matrix.react-dom }}
+
+      - name: Verify provider ownership across React roots
+        run: pnpm exec vitest run src/provider/__tests__/ModalProvider.roots.test.tsx src/provider/__tests__/ModalProvider.test.tsx src/provider/__tests__/useModalLifecycleOwner.test.tsx
+
   verify:
     name: Verify (Node ${{ matrix.node }})
     runs-on: ubuntu-latest

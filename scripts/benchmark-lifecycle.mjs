@@ -124,7 +124,7 @@ function unmountProvider({ container, root }) {
 }
 
 function openHandled(manager) {
-  const handle = manager.open(benchmarkModal, undefined);
+  const handle = manager.open(benchmarkModal);
 
   void handle.catch(() => undefined);
 
@@ -276,7 +276,7 @@ scenarios.push(
     name: "typed registry route, open, and render",
     run: ({ registry }) => {
       flushSync(() => {
-        const handle = registry.open("benchmark", undefined);
+        const handle = registry.open("benchmark");
         void handle.catch(() => undefined);
       });
     },

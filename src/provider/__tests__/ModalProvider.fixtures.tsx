@@ -280,17 +280,15 @@ export function RejectExample(): ReactNode {
   const modal = useModalManager();
 
   const handleOpenStringReject = (): void => {
-    void modal
-      .open(rejectWithStringModal, undefined)
-      .catch((error: unknown) => {
-        if (isInstanceOf(error, ModalRejectError)) {
-          document.body.dataset.rejectValue = String(error.value);
-        }
-      });
+    void modal.open(rejectWithStringModal).catch((error: unknown) => {
+      if (isInstanceOf(error, ModalRejectError)) {
+        document.body.dataset.rejectValue = String(error.value);
+      }
+    });
   };
 
   const handleOpenErrorReject = (): void => {
-    void modal.open(rejectWithErrorModal, undefined).catch((error: unknown) => {
+    void modal.open(rejectWithErrorModal).catch((error: unknown) => {
       if (isError(error)) {
         document.body.dataset.rejectMessage = error.message;
       }

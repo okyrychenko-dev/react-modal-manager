@@ -1,5 +1,10 @@
 import type { ModalHandle, ModalManager } from "../hooks";
-import type { ModalComponent, ModalDefinition, ModalId } from "../types";
+import type {
+  ModalComponent,
+  ModalDefinition,
+  ModalId,
+  ModalOpenArgs,
+} from "../types";
 
 export interface ModalOptions<TInput, TResult> {
   id?: ModalId;
@@ -10,5 +15,8 @@ export interface RegisteredModalDefinition<
   TInput,
   TResult,
 > extends ModalDefinition<TInput, TResult> {
-  open(manager: ModalManager, input: TInput): ModalHandle<TResult>;
+  open(
+    manager: ModalManager,
+    ...args: ModalOpenArgs<TInput>
+  ): ModalHandle<TResult>;
 }

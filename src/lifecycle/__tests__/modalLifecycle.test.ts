@@ -326,7 +326,7 @@ describe("modal lifecycle", () => {
           "Reject with Error",
         ),
     };
-    const preserved = lifecycle.open(errorModal, undefined);
+    const preserved = lifecycle.open(errorModal);
     const preservedOutcome = preserved.catch((error: unknown) => error);
     const [preservedInstance] = lifecycle.getSnapshot().instances;
 

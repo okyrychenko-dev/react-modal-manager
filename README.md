@@ -509,6 +509,7 @@ Type exports:
 - `ModalId`
 - `ModalInstanceId`
 - `ModalInstanceStatus`
+- `ModalOpenArgs`
 - `ModalManager`
 - `ModalOptions`
 - `ModalProviderProps`
@@ -542,7 +543,7 @@ Returns the modal manager from the nearest `ModalProvider`.
 
 **Returns:**
 
-- `open(modal, input): ModalHandle<TResult>`
+- `open(modal, ...args: ModalOpenArgs<TInput>): ModalHandle<TResult>`
 - `confirm(params): Promise<ConfirmModalResult>`
 - `dismiss(instanceId, reason?): void`
 - `closeAll(reason?): void`
@@ -556,13 +557,15 @@ Creates a typed modal definition.
 - `id?: string` — Optional stable modal definition id. A unique definition id is generated when omitted
 - `component: ModalComponent<TInput, TResult>` — React component that receives typed input and completion callbacks
 
+For a modal declared with `TInput = void` (or `undefined`), omit the input argument: `modal.open(infoModal)`. Modals with any other input type still require it.
+
 ### `createModalRegistry(definitions)`
 
 Creates a typed registry for opening modals by key. Bind it directly with `<ModalProvider registry={registry}>`.
 
 **Returns:**
 
-- `open(key, input): ModalHandle<TResult>`
+- `open(key, ...args: ModalOpenArgs<TInput>): ModalHandle<TResult>` — input is optional only when the registered modal uses `void` or `undefined`
 - `confirm(params): Promise<ConfirmModalResult>`
 - `dismiss(instanceId, reason?): void`
 - `closeAll(reason?): void`
@@ -572,7 +575,7 @@ Creates a typed registry for opening modals by key. Bind it directly with `<Moda
 
 Props passed to custom modal components.
 
-- `input: TInput` — Input supplied to `modal.open()`
+- `input: ModalOpenArgs<TInput>[0]` — Input supplied to `modal.open()`; `undefined` when a `void` input is omitted
 - `instanceId: string` — Runtime modal instance id
 - `close(result: TResult): void` — Resolve the modal promise and begin closing the instance
 - `dismiss(reason?): void` — Reject with `ModalDismissError` and begin closing the instance

@@ -10,7 +10,11 @@ import {
   MODAL_REGISTRY_UNKNOWN_KEY_ERROR,
 } from "./createModalRegistry.constants";
 import type { ModalHandle, ModalManager } from "../hooks";
-import type { ModalDismissReason, ModalInstanceId } from "../types";
+import type {
+  ModalDismissReason,
+  ModalInstanceId,
+  ModalOpenArgs,
+} from "../types";
 import type {
   ModalRegistry,
   ModalRegistryDefinitions,
@@ -58,9 +62,9 @@ export function createModalRegistry<
 
   function open<TKey extends keyof TDefinitions & string>(
     key: TKey,
-    input: ModalRegistryInput<TDefinitions[TKey]>,
+    ...args: ModalOpenArgs<ModalRegistryInput<TDefinitions[TKey]>>
   ): ReturnType<TDefinitions[TKey]["open"]>;
-  function open(key: string, input: unknown): ModalHandle<unknown> {
+  function open(key: string, input?: unknown): ModalHandle<unknown> {
     assertTrue(
       hasProperty(definitions, key),
       () => `${MODAL_REGISTRY_UNKNOWN_KEY_ERROR}: ${key}`,

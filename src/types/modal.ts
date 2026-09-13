@@ -5,8 +5,14 @@ export type ModalInstanceId = string;
 export type ModalDismissReason = "dismiss" | "close-all" | "provider-unmount";
 export type ModalInstanceStatus = "open" | "closing";
 
+type InputlessModalValue = ReturnType<VoidFunction>;
+
+export type ModalOpenArgs<TInput> = [TInput] extends [InputlessModalValue]
+  ? [input?: TInput]
+  : [input: TInput];
+
 export interface ModalComponentProps<TInput, TResult> {
-  input: TInput;
+  input: ModalOpenArgs<TInput>[0];
   instanceId: ModalInstanceId;
   close: (result: TResult) => void;
   dismiss: (reason?: ModalDismissReason) => void;

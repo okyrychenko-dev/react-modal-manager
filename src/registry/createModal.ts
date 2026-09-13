@@ -17,6 +17,6 @@ export function createModal<TInput, TResult>(
 
   return {
     ...definition,
-    open: (manager, input) => manager.open(definition, input),
+    open: (manager, ...args) => manager.open(definition, ...args),
   };
 }

@@ -81,11 +81,9 @@ export function DismissRejectDemo(): ReactElement {
   };
 
   const handleReject = (): void => {
-    void modal
-      .open(rejectWithStringModal, undefined)
-      .catch((error: unknown) => {
-        setState(describeRejection(error));
-      });
+    void modal.open(rejectWithStringModal).catch((error: unknown) => {
+      setState(describeRejection(error));
+    });
   };
 
   return (

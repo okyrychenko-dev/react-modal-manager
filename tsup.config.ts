@@ -7,7 +7,7 @@ export default defineConfig({
   splitting: false,
   sourcemap: true,
   clean: true,
-  external: ["react", "zustand"],
+  external: ["react"],
   treeshake: true,
   minify: false,
 });

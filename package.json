@@ -1,6 +1,6 @@
 {
   "name": "@okyrychenko-dev/react-modal-manager",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "packageManager": "pnpm@11.21.0",
   "type": "module",
   "description": "Typed modal/dialog lifecycle manager for React",
@@ -23,6 +23,7 @@
   "files": [
     "dist",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE"
   ],
   "scripts": {

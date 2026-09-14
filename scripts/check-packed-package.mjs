@@ -70,6 +70,7 @@ try {
 
   const packageRoot = join(extractRoot, "package");
   const expectedFiles = [
+    "CHANGELOG.md",
     "LICENSE",
     "README.md",
     "dist/index.cjs",

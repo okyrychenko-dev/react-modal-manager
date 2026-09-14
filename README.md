@@ -35,7 +35,7 @@ const app = (
 
 ## Why This Library
 
-- **Typed results, not `any`.** `open<TInput, TResult>(def, input)` returns a `Promise<TResult>`. Both sides of the call are checked.
+- **Typed results, not `any`.** `open<TInput, TResult>(def, input)` returns a `Promise<TResult>`. Both sides of the call are checked, and inputless modals can omit the argument.
 - **Per-provider isolation.** Each `ModalProvider` owns an independent lifecycle whose authoritative state React observes directly — no global lifecycle singleton, so subtrees and tests never leak modal state into each other.
 - **Open from non-React code.** A typed registry lets event buses, command palettes, and action maps open modals while keeping full inference.
 - **UI-agnostic core.** A single `renderer` seam lets you plug in portals, overlays, animations, or any design system. The core never prescribes DOM or styling.
@@ -44,7 +44,7 @@ const app = (
 
 ### Compared to [`@ebay/nice-modal-react`](https://github.com/eBay/nice-modal-react)
 
-Revalidated **2026-09-13** against this package at **0.1.0** (`0004c89`) and the current stable [`@ebay/nice-modal-react` 1.2.13](https://www.npmjs.com/package/@ebay/nice-modal-react/v/1.2.13). “Verified behavior” below means an executable public-surface check; “architecture” describes source structure and is not itself a consumer guarantee.
+Revalidated **2026-09-13** for this package's **0.2.0** release line (through `3a98aa8`) and the current stable [`@ebay/nice-modal-react` 1.2.13](https://www.npmjs.com/package/@ebay/nice-modal-react/v/1.2.13). “Verified behavior” below means an executable public-surface check; “architecture” describes source structure and is not itself a consumer guarantee.
 
 | Area | `react-modal-manager` | `nice-modal-react` | Evidence kind |
 | --- | --- | --- | --- |
@@ -59,7 +59,7 @@ Revalidated **2026-09-13** against this package at **0.1.0** (`0004c89`) and the
 | First-use ergonomics | `confirm()` is the shortest path; custom flows define a modal and open it directly or through a registry | `show(component, props)` is the shortest path; string access adds `register(id, component)` | Documented public APIs: [this README](#quick-start), [Nice Modal usage](https://github.com/eBay/nice-modal-react/tree/1.2.13#usage) |
 | Package cost | Recorded minimal `createModal` consumer: **2,058 B / 1,044 B gzip**; React is the only peer and `type-utils` the only runtime dependency | Reproduced minimal named-`show` consumer: **758 B / 473 B gzip**; zero runtime dependencies, with React and React DOM as peers | Reproduce with [`package:check`](scripts/check-packed-package.mjs) and [`competitive:check`](scripts/check-competitive-package.mjs). The entry points differ, so these are package-cost observations, not a universal size ranking. |
 | Performance | Optimized-build raw samples and summaries cover mount, unmount, open/render, settlement, delayed removal, stacking, and registry routing | No like-for-like run was made against the competitor | Reproducible local evidence: [`benchmark:lifecycle`](scripts/benchmark-lifecycle.mjs). No performance winner is claimed. |
-| Maintenance status | 0.1.0 is the version evaluated on this repository’s current main branch | 1.2.13 was published 2023-10-03; it remains the npm `latest` release on the evaluation date | Release evidence: [local manifest](package.json), [npm version](https://www.npmjs.com/package/@ebay/nice-modal-react/v/1.2.13), [GitHub release](https://github.com/eBay/nice-modal-react/releases/tag/1.2.13) |
+| Maintenance status | 0.2.0 is the release line evaluated in this repository | 1.2.13 was published 2023-10-03; it remains the npm `latest` release on the evaluation date | Release evidence: [local manifest](package.json), [npm version](https://www.npmjs.com/package/@ebay/nice-modal-react/v/1.2.13), [GitHub release](https://github.com/eBay/nice-modal-react/releases/tag/1.2.13) |
 
 The main trade-off is deliberate: this package does not provide unchecked `show("any-string")` routing. Imperative callers import a typed definition or use a typed registry, and a registry must be bound to a mounted provider. Nice Modal’s global component/id calls require less setup and can be more convenient when that trade-off is acceptable. Conversely, this package’s provider ownership, result inference, SSR behavior, and built-in confirmation are explicit tested contracts rather than conclusions drawn only from implementation structure.
 
@@ -250,6 +250,16 @@ const result = await handle;
 ```
 
 The handle's `dismiss()` stays bound to the provider that opened the modal.
+
+For a modal that needs no input, declare its input as `void` and omit the second argument:
+
+```tsx
+const infoModal = createModal<void, void>({ component: InfoModal });
+
+await modal.open(infoModal);
+```
+
+Modals with any other input type still require an input argument.
 
 ## Typed Modal Registry
 

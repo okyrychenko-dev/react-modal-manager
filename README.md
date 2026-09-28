@@ -9,22 +9,16 @@
 `react-modal-manager` turns modal flows into typed promises. You `open()` a modal, `await` it, and TypeScript infers both the **input** you pass in and the **result** you get back — no `Promise<any>`, no global singleton, no design system lock-in.
 
 ```tsx
-import { ModalDismissError, ModalProvider, useModalManager } from "@okyrychenko-dev/react-modal-manager";
+import { ModalProvider, useModalManager } from "@okyrychenko-dev/react-modal-manager";
 
 function DeleteButton() {
   const modal = useModalManager();
 
   async function handleClick() {
-    try {
-      const result = await modal.confirm({ title: "Delete report?", variant: "danger" });
+    const result = await modal.confirm({ title: "Delete report?", variant: "danger" });
 
-      if (result.confirmed) {
-        await deleteReport();
-      }
-    } catch (error) {
-      // A programmatic dismissal or provider unmount rejects the promise.
-      if (error instanceof ModalDismissError) return;
-      throw error;
+    if (result.confirmed) {
+      await deleteReport();
     }
   }
 
@@ -46,7 +40,7 @@ const app = (
 - **Open from non-React code.** A typed registry lets event buses, command palettes, and action maps open modals while keeping full inference.
 - **UI-agnostic core.** A single `renderer` seam lets you plug in portals, overlays, animations, or any design system. The core never prescribes DOM or styling.
 - **Built-in `confirm()`** with a typed, discriminated-union result — useful from day one, replaceable when you need your own design.
-- **Promise-shaped lifecycle.** Dismissals reject with `ModalDismissError`; exit animations are supported through `closeDelayMs` + an `"open" | "closing"` status.
+- **Promise-shaped lifecycle.** Programmatic dismissal and provider teardown reject with `ModalDismissError`; built-in confirmation Cancel/Escape resolve as typed results. Exit animations are supported through `closeDelayMs` + an `"open" | "closing"` status.
 
 ## Choose the API
 
@@ -82,7 +76,7 @@ The package also installs its small runtime guard dependency automatically; Reac
 Wrap the part of your app that can open modals with `ModalProvider`, then call `useModalManager()` from any descendant.
 
 ```tsx
-import { ModalDismissError, ModalProvider, useModalManager } from "@okyrychenko-dev/react-modal-manager";
+import { ModalProvider, useModalManager } from "@okyrychenko-dev/react-modal-manager";
 
 function App() {
   return (
@@ -96,22 +90,16 @@ function ReportsPage() {
   const modal = useModalManager();
 
   async function handleDelete() {
-    try {
-      const result = await modal.confirm({
-        title: "Delete report?",
-        description: "This action cannot be undone.",
-        confirmText: "Delete",
-        cancelText: "Cancel",
-        variant: "danger",
-      });
+    const result = await modal.confirm({
+      title: "Delete report?",
+      description: "This action cannot be undone.",
+      confirmText: "Delete",
+      cancelText: "Cancel",
+      variant: "danger",
+    });
 
-      if (result.confirmed) {
-        await deleteReport();
-      }
-    } catch (error) {
-      // Covers programmatic dismissal and provider unmount, not Cancel/Escape.
-      if (error instanceof ModalDismissError) return;
-      throw error;
+    if (result.confirmed) {
+      await deleteReport();
     }
   }
 
@@ -249,7 +237,9 @@ async function renameReportWithModal(modal: ReturnType<typeof useModalManager>) 
       await renameReport({ reportId: "report-1", name: result.name });
     }
   } catch (error) {
-    if (error instanceof ModalDismissError) return;
+    if (error instanceof ModalDismissError) {
+      return;
+    }
     throw error;
   }
 }
@@ -269,7 +259,9 @@ try {
   const result = await handle;
   // Use result here if another action resolved the modal first.
 } catch (error) {
-  if (!(error instanceof ModalDismissError)) throw error;
+  if (!(error instanceof ModalDismissError)) {
+    throw error;
+  }
 }
 ```
 
@@ -329,9 +321,13 @@ function RenameLauncher() {
         await renameReport({ reportId: "report-1", name: result.name });
       }
     } catch (error) {
-      if (!(error instanceof ModalDismissError)) throw error;
+      if (!(error instanceof ModalDismissError)) {
+        throw error;
+      }
     } finally {
-      if (pending.current === handle) pending.current = null;
+      if (pending.current === handle) {
+        pending.current = null;
+      }
     }
   }
 

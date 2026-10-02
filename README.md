@@ -290,7 +290,7 @@ The promise settles **once**. The first `close(result)`, `reject(error)`, or `di
 | `modal.closeAll()` | Rejects every open modal with reason `"close-all"` | Tear down a modal stack |
 | Provider unmount | Rejects every pending modal with reason `"provider-unmount"` | Automatic cleanup of the provider's lifecycle |
 
-A **calling component** unmounting does not automatically cancel a modal owned by a provider higher in the tree. The promise stays pending until that modal settles or its provider unmounts. If the caller owns the modal's lifetime, keep its handle and dismiss it in effect cleanup; also handle the resulting rejection:
+A **calling component** unmounting does not automatically cancel a modal owned by a provider higher in the tree. The promise stays pending until that modal settles or its provider unmounts. If the caller owns the modal's lifetime, track every active handle and dismiss each in effect cleanup; also handle the resulting rejections:
 
 ```tsx
 import { useEffect, useRef } from "react";
@@ -302,10 +302,17 @@ import {
 
 function RenameLauncher() {
   const modal = useModalManager();
-  const pending = useRef<ModalHandle<RenameReportResult> | null>(null);
+  const pending = useRef(new Set<ModalHandle<RenameReportResult>>());
 
-  useEffect(() => () => {
-    pending.current?.dismiss();
+  useEffect(() => {
+    const handles = pending.current;
+
+    return () => {
+      for (const handle of handles) {
+        handle.dismiss();
+      }
+      handles.clear();
+    };
   }, []);
 
   async function handleClick() {
@@ -313,7 +320,7 @@ function RenameLauncher() {
       reportId: "report-1",
       currentName: "Draft",
     });
-    pending.current = handle;
+    pending.current.add(handle);
 
     try {
       const result = await handle;
@@ -325,15 +332,15 @@ function RenameLauncher() {
         throw error;
       }
     } finally {
-      if (pending.current === handle) {
-        pending.current = null;
-      }
+      pending.current.delete(handle);
     }
   }
 
   return <button onClick={handleClick}>Rename</button>;
 }
 ```
+
+Each click adds a separate handle to the set. The `finally` block removes it when the flow completes, and unmount cleanup dismisses all remaining handles, including concurrent launches.
 
 This cleanup is optional: it expresses the caller's ownership policy. For operations that must survive the initiating component, keep the provider mounted and let another owner observe the result. React 18/19 Strict Mode effect replay is covered by the provider's lifecycle tests; provider teardown is deferred and canceled if the same owner immediately remounts.
 

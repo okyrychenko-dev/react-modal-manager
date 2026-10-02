@@ -15,9 +15,9 @@ function DeleteButton() {
   const modal = useModalManager();
 
   async function handleClick() {
-    const { confirmed } = await modal.confirm({ title: "Delete report?", variant: "danger" });
+    const result = await modal.confirm({ title: "Delete report?", variant: "danger" });
 
-    if (confirmed) {
+    if (result.confirmed) {
       await deleteReport();
     }
   }
@@ -40,28 +40,18 @@ const app = (
 - **Open from non-React code.** A typed registry lets event buses, command palettes, and action maps open modals while keeping full inference.
 - **UI-agnostic core.** A single `renderer` seam lets you plug in portals, overlays, animations, or any design system. The core never prescribes DOM or styling.
 - **Built-in `confirm()`** with a typed, discriminated-union result — useful from day one, replaceable when you need your own design.
-- **Promise-shaped lifecycle.** Dismissals reject with `ModalDismissError`; exit animations are supported through `closeDelayMs` + an `"open" | "closing"` status.
+- **Promise-shaped lifecycle.** Programmatic dismissal and provider teardown reject with `ModalDismissError`; built-in confirmation Cancel/Escape resolve as typed results. Exit animations are supported through `closeDelayMs` + an `"open" | "closing"` status.
 
-### Compared to [`@ebay/nice-modal-react`](https://github.com/eBay/nice-modal-react)
+## Choose the API
 
-Revalidated **2026-09-13** for this package's **0.2.0** release line (through `3a98aa8`) and the current stable [`@ebay/nice-modal-react` 1.2.13](https://www.npmjs.com/package/@ebay/nice-modal-react/v/1.2.13). “Verified behavior” below means an executable public-surface check; “architecture” describes source structure and is not itself a consumer guarantee.
+| Need | Use | Outcome |
+| --- | --- | --- |
+| Yes/no decision | `modal.confirm(params)` | `{ confirmed: true }` or `{ confirmed: false, reason: "cancel" | "dismiss" }` for the built-in UI |
+| A form or custom workflow | `modal.open(definition, input)` | The result you pass to `close(result)`; `dismiss()` rejects |
+| Open a modal from a command or other non-React code | `createModalRegistry()` | The same typed result and dismissal behavior |
+| Design-system dialog shell | `<ModalProvider renderer={...}>` | Wraps every modal, including `confirm()` |
 
-| Area | `react-modal-manager` | `nice-modal-react` | Evidence kind |
-| --- | --- | --- | --- |
-| Input and result typing | A definition or registry key couples input to `Promise<TResult>` | Component props are inferred; `show()` result is caller-selected and handlers expose `Promise<unknown>` | Verified declarations: [local packed-consumer fixture](scripts/package-consumer.typecheck.ts), [Nice Modal 1.2.13 declarations](https://unpkg.com/@ebay/nice-modal-react@1.2.13/lib/esm/index.d.ts) |
-| Lifecycle correctness | Per-instance handles; resolve, reject, and dismiss settle once; optional closing phase precedes removal | Promise-based `show`; separate `hide` and `remove`; UI-library helpers connect removal to exit callbacks | Verified local behavior: [lifecycle tests](src/lifecycle/__tests__/modalLifecycle.test.ts); documented competitor behavior: [Nice Modal usage and helpers](https://github.com/eBay/nice-modal-react/tree/1.2.13#usage) |
-| Provider isolation | Nested, adjacent, and independent roots own isolated lifecycle state | Each provider creates reducer state, while imperative dispatch, registrations, and promise callbacks are module-level | Verified local behavior: [root tests](src/provider/__tests__/ModalProvider.roots.test.tsx); competitor architecture: [1.2.13 source](https://github.com/eBay/nice-modal-react/blob/1.2.13/src/index.tsx) |
-| React compatibility | Declares React 18 and 19 and runs the same root/Strict Mode suite against both | Declares React and React DOM `>16.8.0`; the published package was developed with React 17 | Verified local matrix: [CI](.github/workflows/ci.yml); published competitor metadata: [package manifest](https://unpkg.com/@ebay/nice-modal-react@1.2.13/package.json) |
-| SSR and RSC | Provider server rendering, separate-request isolation, and hydration are tested; RSC usage has a compiled Client Component example | No SSR, hydration, or React Server Components contract is documented in the 1.2.13 README | Verified local behavior: [SSR tests](src/provider/__tests__/ModalProvider.ssr.test.tsx) and [RSC-style fixture](examples/next-app-router-provider.typecheck.tsx); competitor documentation: [1.2.13 README](https://github.com/eBay/nice-modal-react/tree/1.2.13) |
-| Imperative access | A typed registry opens outside React after being bound to a provider; keys, input, and results are inferred | `NiceModal.show(component, props)` or a registered string id can be called directly after a provider establishes the module-level dispatch | Verified local behavior: [registry tests](src/registry/__tests__/createModalRegistry.test.tsx); documented competitor behavior: [component and id APIs](https://github.com/eBay/nice-modal-react/tree/1.2.13#using-your-modal-component) |
-| Rendering independence | Lifecycle renders modal definitions through a replaceable wrapper; no portal, overlay, CSS, or design-system dependency | Supplies no dialog markup and wraps consumer components; includes helpers for Ant Design, MUI, and React Bootstrap lifecycles | Public interfaces: [local renderer types](src/types/modal.ts), [Nice Modal helpers](https://unpkg.com/@ebay/nice-modal-react@1.2.13/lib/esm/index.d.ts) |
-| Accessibility composition | Built-in confirmation provides dialog semantics, initial focus, focus trapping, and safe destructive focus; custom modals/renderers remain consumer-owned | Accessibility belongs entirely to the consumer’s chosen modal component or UI library | Verified local behavior: [confirmation tests](src/confirm/__tests__/ConfirmModal.test.tsx); documented competitor scope: [“not a React modal component”](https://github.com/eBay/nice-modal-react/tree/1.2.13#nice-modal) |
-| First-use ergonomics | `confirm()` is the shortest path; custom flows define a modal and open it directly or through a registry | `show(component, props)` is the shortest path; string access adds `register(id, component)` | Documented public APIs: [this README](#quick-start), [Nice Modal usage](https://github.com/eBay/nice-modal-react/tree/1.2.13#usage) |
-| Package cost | Recorded minimal `createModal` consumer: **2,058 B / 1,044 B gzip**; React is the only peer and `type-utils` the only runtime dependency | Reproduced minimal named-`show` consumer: **758 B / 473 B gzip**; zero runtime dependencies, with React and React DOM as peers | Reproduce with [`package:check`](scripts/check-packed-package.mjs) and [`competitive:check`](scripts/check-competitive-package.mjs). The entry points differ, so these are package-cost observations, not a universal size ranking. |
-| Performance | Optimized-build raw samples and summaries cover mount, unmount, open/render, settlement, delayed removal, stacking, and registry routing | No like-for-like run was made against the competitor | Reproducible local evidence: [`benchmark:lifecycle`](scripts/benchmark-lifecycle.mjs). No performance winner is claimed. |
-| Maintenance status | 0.2.0 is the release line evaluated in this repository | 1.2.13 was published 2023-10-03; it remains the npm `latest` release on the evaluation date | Release evidence: [local manifest](package.json), [npm version](https://www.npmjs.com/package/@ebay/nice-modal-react/v/1.2.13), [GitHub release](https://github.com/eBay/nice-modal-react/releases/tag/1.2.13) |
-
-The main trade-off is deliberate: this package does not provide unchecked `show("any-string")` routing. Imperative callers import a typed definition or use a typed registry, and a registry must be bound to a mounted provider. Nice Modal’s global component/id calls require less setup and can be more convenient when that trade-off is acceptable. Conversely, this package’s provider ownership, result inference, SSR behavior, and built-in confirmation are explicit tested contracts rather than conclusions drawn only from implementation structure.
+**Important:** Cancel and Escape in the *built-in confirmation UI* resolve with `confirmed: false`. Calls to `dismiss()`, `closeAll()`, and provider unmount reject with `ModalDismissError`, including for `confirm()`. For custom modals, your component chooses whether a Cancel button calls `close({ ... })` or `dismiss()`. See [Outcomes and cleanup](#outcomes-and-cleanup).
 
 ## Installation
 
@@ -108,11 +98,9 @@ function ReportsPage() {
       variant: "danger",
     });
 
-    if (!result.confirmed) {
-      return;
+    if (result.confirmed) {
+      await deleteReport();
     }
-
-    await deleteReport();
   }
 
   return <button onClick={handleDelete}>Delete</button>;
@@ -233,7 +221,29 @@ if (result.status === "renamed") {
 }
 ```
 
-`modal.open()` rejects with `ModalDismissError` when the modal is dismissed, `closeAll()` is called, or the provider unmounts while the modal is still pending. Use `try/catch` or `.catch()` when a modal can be dismissed without resolving a result.
+`modal.open()` rejects with `ModalDismissError` when the modal is dismissed, `closeAll()` is called, or the provider unmounts while it is still pending. Handle that branch explicitly in the caller. TypeScript checks the resolved result but does not encode a promise's rejection type.
+
+```tsx
+import { ModalDismissError } from "@okyrychenko-dev/react-modal-manager";
+
+async function renameReportWithModal(modal: ReturnType<typeof useModalManager>) {
+  try {
+    const result = await modal.open(renameReportModal, {
+      reportId: "report-1",
+      currentName: "Draft",
+    });
+
+    if (result.status === "renamed") {
+      await renameReport({ reportId: "report-1", name: result.name });
+    }
+  } catch (error) {
+    if (error instanceof ModalDismissError) {
+      return;
+    }
+    throw error;
+  }
+}
+```
 
 Keep the handle returned by `open()` when the caller needs to identify or dismiss the specific modal instance later:
 
@@ -244,12 +254,18 @@ const handle = modal.open(renameReportModal, {
 });
 
 handle.instanceId;
-handle.dismiss();
-
-const result = await handle;
+try {
+  handle.dismiss(); // Rejects this handle with ModalDismissError.
+  const result = await handle;
+  // Use result here if another action resolved the modal first.
+} catch (error) {
+  if (!(error instanceof ModalDismissError)) {
+    throw error;
+  }
+}
 ```
 
-The handle's `dismiss()` stays bound to the provider that opened the modal.
+The handle's `dismiss()` stays bound to the provider that opened the modal. Attach a rejection handler before dismissing a handle you will no longer await.
 
 For a modal that needs no input, declare its input as `void` and omit the second argument:
 
@@ -260,6 +276,73 @@ await modal.open(infoModal);
 ```
 
 Modals with any other input type still require an input argument.
+
+## Outcomes and cleanup
+
+The promise settles **once**. The first `close(result)`, `reject(error)`, or `dismiss(reason)` changes the instance to `"closing"`; later settlement calls for that instance are ignored. `closeDelayMs` delays removal for an exit animation, but the promise settles immediately.
+
+| Action | Promise outcome | When to use it |
+| --- | --- | --- |
+| `close(result)` | Resolves with typed `result` | A completed flow or an expected result such as Cancel |
+| `reject(error)` | Rejects with `error` (non-`Error` values become `ModalRejectError`) | An operation failed |
+| `dismiss(reason?)` | Rejects with `ModalDismissError` | A custom modal is abandoned without a result |
+| `modal.dismiss(id)` / `handle.dismiss()` | Rejects with `ModalDismissError("dismiss")` by default | Close one pending modal externally |
+| `modal.closeAll()` | Rejects every open modal with reason `"close-all"` | Tear down a modal stack |
+| Provider unmount | Rejects every pending modal with reason `"provider-unmount"` | Automatic cleanup of the provider's lifecycle |
+
+A **calling component** unmounting does not automatically cancel a modal owned by a provider higher in the tree. The promise stays pending until that modal settles or its provider unmounts. If the caller owns the modal's lifetime, track every active handle and dismiss each in effect cleanup; also handle the resulting rejections:
+
+```tsx
+import { useEffect, useRef } from "react";
+import {
+  ModalDismissError,
+  useModalManager,
+  type ModalHandle,
+} from "@okyrychenko-dev/react-modal-manager";
+
+function RenameLauncher() {
+  const modal = useModalManager();
+  const pending = useRef(new Set<ModalHandle<RenameReportResult>>());
+
+  useEffect(() => {
+    const handles = pending.current;
+
+    return () => {
+      for (const handle of handles) {
+        handle.dismiss();
+      }
+      handles.clear();
+    };
+  }, []);
+
+  async function handleClick() {
+    const handle = modal.open(renameReportModal, {
+      reportId: "report-1",
+      currentName: "Draft",
+    });
+    pending.current.add(handle);
+
+    try {
+      const result = await handle;
+      if (result.status === "renamed") {
+        await renameReport({ reportId: "report-1", name: result.name });
+      }
+    } catch (error) {
+      if (!(error instanceof ModalDismissError)) {
+        throw error;
+      }
+    } finally {
+      pending.current.delete(handle);
+    }
+  }
+
+  return <button onClick={handleClick}>Rename</button>;
+}
+```
+
+Each click adds a separate handle to the set. The `finally` block removes it when the flow completes, and unmount cleanup dismisses all remaining handles, including concurrent launches.
+
+This cleanup is optional: it expresses the caller's ownership policy. For operations that must survive the initiating component, keep the provider mounted and let another owner observe the result. React 18/19 Strict Mode effect replay is covered by the provider's lifecycle tests; provider teardown is deferred and canceled if the same owner immediately remounts.
 
 ## Typed Modal Registry
 
@@ -330,7 +413,7 @@ function App() {
 
 ## Confirmation Modals
 
-`modal.confirm()` (and `registry.confirm()`) opens the built-in confirmation modal and resolves to a typed, discriminated-union result.
+`modal.confirm()` (and `registry.confirm()`) opens the built-in confirmation modal and normally resolves to a typed, discriminated-union result. The Confirm button returns `{ confirmed: true }`; Cancel returns `{ confirmed: false, reason: "cancel" }`; Escape and the built-in Dismiss button return `{ confirmed: false, reason: "dismiss" }` when dismissal is allowed. These UI actions call `close(result)`, not the lifecycle `dismiss()`. Programmatic dismissal, `closeAll()`, and provider unmount still reject with `ModalDismissError`.
 
 ```tsx
 const result = await modal.confirm({
@@ -379,7 +462,9 @@ function App() {
 }
 ```
 
-The core prescribes no DOM structure, focus management, or styling — renderers provide those while reusing the same modal manager interface. When `closeDelayMs` is greater than `0`, resolved, dismissed, or rejected instances move from `modal.status === "open"` to `modal.status === "closing"` before removal, giving exit animations time to run. A value of `0` or less removes the instance immediately. Updating the prop changes the removal delay used by later settlements in that provider.
+Every modal instance goes through this renderer, including the built-in `confirm()` and custom modals. A renderer can provide a shell or portal; it does not replace the confirmation component. Pass `confirmModal={yourDefinition}` to `ModalProvider` to replace that UI. If the renderer already provides dialog semantics (for example, Radix `DialogContent`), make the custom confirmation content-only to avoid nested dialogs.
+
+The core prescribes no DOM structure, focus management, or styling for custom modals — renderers and components provide those while reusing the same manager interface. When `closeDelayMs` is greater than `0`, resolved, dismissed, or rejected instances move from `modal.status === "open"` to `modal.status === "closing"` before removal, giving exit animations time to run. A value of `0` or less removes the instance immediately. Updating the prop changes the removal delay used by later settlements in that provider.
 
 ## Recipes
 
@@ -699,6 +784,27 @@ react-modal-manager
 react-action-guard-dialog
   -> confirm and run guarded actions through react-modal-manager
 ```
+
+### Compared to [`@ebay/nice-modal-react`](https://github.com/eBay/nice-modal-react)
+
+Revalidated **2026-09-13** for this package's **0.2.0** release line (through `3a98aa8`) and the current stable [`@ebay/nice-modal-react` 1.2.13](https://www.npmjs.com/package/@ebay/nice-modal-react/v/1.2.13). “Verified behavior” below means an executable public-surface check; “architecture” describes source structure and is not itself a consumer guarantee.
+
+| Area | `react-modal-manager` | `nice-modal-react` | Evidence kind |
+| --- | --- | --- | --- |
+| Input and result typing | A definition or registry key couples input to `Promise<TResult>` | Component props are inferred; `show()` result is caller-selected and handlers expose `Promise<unknown>` | Verified declarations: [local packed-consumer fixture](scripts/package-consumer.typecheck.ts), [Nice Modal 1.2.13 declarations](https://unpkg.com/@ebay/nice-modal-react@1.2.13/lib/esm/index.d.ts) |
+| Lifecycle correctness | Per-instance handles; resolve, reject, and dismiss settle once; optional closing phase precedes removal | Promise-based `show`; separate `hide` and `remove`; UI-library helpers connect removal to exit callbacks | Verified local behavior: [lifecycle tests](src/lifecycle/__tests__/modalLifecycle.test.ts); documented competitor behavior: [Nice Modal usage and helpers](https://github.com/eBay/nice-modal-react/tree/1.2.13#usage) |
+| Provider isolation | Nested, adjacent, and independent roots own isolated lifecycle state | Each provider creates reducer state, while imperative dispatch, registrations, and promise callbacks are module-level | Verified local behavior: [root tests](src/provider/__tests__/ModalProvider.roots.test.tsx); competitor architecture: [1.2.13 source](https://github.com/eBay/nice-modal-react/blob/1.2.13/src/index.tsx) |
+| React compatibility | Declares React 18 and 19 and runs the same root/Strict Mode suite against both | Declares React and React DOM `>16.8.0`; the published package was developed with React 17 | Verified local matrix: [CI](.github/workflows/ci.yml); published competitor metadata: [package manifest](https://unpkg.com/@ebay/nice-modal-react@1.2.13/package.json) |
+| SSR and RSC | Provider server rendering, separate-request isolation, and hydration are tested; RSC usage has a compiled Client Component example | No SSR, hydration, or React Server Components contract is documented in the 1.2.13 README | Verified local behavior: [SSR tests](src/provider/__tests__/ModalProvider.ssr.test.tsx) and [RSC-style fixture](examples/next-app-router-provider.typecheck.tsx); competitor documentation: [1.2.13 README](https://github.com/eBay/nice-modal-react/tree/1.2.13) |
+| Imperative access | A typed registry opens outside React after being bound to a provider; keys, input, and results are inferred | `NiceModal.show(component, props)` or a registered string id can be called directly after a provider establishes the module-level dispatch | Verified local behavior: [registry tests](src/registry/__tests__/createModalRegistry.test.tsx); documented competitor behavior: [component and id APIs](https://github.com/eBay/nice-modal-react/tree/1.2.13#using-your-modal-component) |
+| Rendering independence | Lifecycle renders modal definitions through a replaceable wrapper; no portal, overlay, CSS, or design-system dependency | Supplies no dialog markup and wraps consumer components; includes helpers for Ant Design, MUI, and React Bootstrap lifecycles | Public interfaces: [local renderer types](src/types/modal.ts), [Nice Modal helpers](https://unpkg.com/@ebay/nice-modal-react@1.2.13/lib/esm/index.d.ts) |
+| Accessibility composition | Built-in confirmation provides dialog semantics, initial focus, focus trapping, and safe destructive focus; custom modals/renderers remain consumer-owned | Accessibility belongs entirely to the consumer’s chosen modal component or UI library | Verified local behavior: [confirmation tests](src/confirm/__tests__/ConfirmModal.test.tsx); documented competitor scope: [“not a React modal component”](https://github.com/eBay/nice-modal-react/tree/1.2.13#nice-modal) |
+| First-use ergonomics | `confirm()` is the shortest path; custom flows define a modal and open it directly or through a registry | `show(component, props)` is the shortest path; string access adds `register(id, component)` | Documented public APIs: [this README](#quick-start), [Nice Modal usage](https://github.com/eBay/nice-modal-react/tree/1.2.13#usage) |
+| Package cost | Recorded minimal `createModal` consumer: **2,058 B / 1,044 B gzip**; React is the only peer and `type-utils` the only runtime dependency | Reproduced minimal named-`show` consumer: **758 B / 473 B gzip**; zero runtime dependencies, with React and React DOM as peers | Reproduce with [`package:check`](scripts/check-packed-package.mjs) and [`competitive:check`](scripts/check-competitive-package.mjs). The entry points differ, so these are package-cost observations, not a universal size ranking. |
+| Performance | Optimized-build raw samples and summaries cover mount, unmount, open/render, settlement, delayed removal, stacking, and registry routing | No like-for-like run was made against the competitor | Reproducible local evidence: [`benchmark:lifecycle`](scripts/benchmark-lifecycle.mjs). No performance winner is claimed. |
+| Maintenance status | 0.2.0 is the release line evaluated in this repository | 1.2.13 was published 2023-10-03; it remains the npm `latest` release on the evaluation date | Release evidence: [local manifest](package.json), [npm version](https://www.npmjs.com/package/@ebay/nice-modal-react/v/1.2.13), [GitHub release](https://github.com/eBay/nice-modal-react/releases/tag/1.2.13) |
+
+The main trade-off is deliberate: this package does not provide unchecked `show("any-string")` routing. Imperative callers import a typed definition or use a typed registry, and a registry must be bound to a mounted provider. Nice Modal’s global component/id calls require less setup and can be more convenient when that trade-off is acceptable. Conversely, this package’s provider ownership, result inference, SSR behavior, and built-in confirmation are explicit tested contracts rather than conclusions drawn only from implementation structure.
 
 ## Development
 

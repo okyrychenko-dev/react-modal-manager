@@ -2,12 +2,12 @@ import { useState } from "react";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 import { useModalManager } from "../hooks/useModalManager";
 import {
+  ConfirmStackDemo,
   StoryLayout,
   styles,
   withCustomConfirmModalProvider,
   withModalProvider,
 } from "../stories";
-import { ConfirmStackDemo } from "./ConfirmStackDemo";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { ReactElement } from "react";
 import type {

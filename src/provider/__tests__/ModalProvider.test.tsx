@@ -998,7 +998,9 @@ describe("ModalProvider", () => {
 
       expect(first.instanceId).toBe(second.instanceId);
 
-      act(() => first.dismiss());
+      act(() => {
+        first.dismiss();
+      });
 
       await dismissed;
 

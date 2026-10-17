@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
+import { ModalProvider } from "../provider";
 import { createModal, createModalRegistry } from "../registry";
-import { ModalProvider } from "./ModalProvider";
 import { RegistryRefreshConfirm } from "./RegistryRefreshConfirm";
 import type { ReactElement } from "react";
 import type { ConfirmModalParams, ConfirmModalResult } from "../confirm";

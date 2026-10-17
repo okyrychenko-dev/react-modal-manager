@@ -5,8 +5,8 @@ import { ModalProvider } from "../provider";
 import { createModalRegistry } from "../registry";
 import type { Optional } from "@okyrychenko-dev/type-utils";
 import type { KeyboardEvent, ReactElement } from "react";
+import type { ConfirmModalResult } from "../confirm";
 import type { ModalHandle } from "../hooks";
-import type { ConfirmModalResult } from "./ConfirmModal.types";
 
 export function ConfirmStackDemo({
   closeDelayMs = 0,
@@ -22,14 +22,12 @@ export function ConfirmStackDemo({
         setOutcome(result.confirmed ? "Confirmed" : result.reason);
       })
       .catch((error: unknown) => {
-        setOutcome(
-          isInstanceOf(error, ModalDismissError)
-            ? "Removed lower"
-            : "Unexpected rejection",
-        );
-        if (!isInstanceOf(error, ModalDismissError)) {
-          console.error(error);
+        if (isInstanceOf(error, ModalDismissError)) {
+          setOutcome("Removed lower");
+          return;
         }
+        setOutcome("Unexpected rejection");
+        console.error(error);
       });
   };
   const openLower = (): void => {

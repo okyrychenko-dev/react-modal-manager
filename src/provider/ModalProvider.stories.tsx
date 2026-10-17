@@ -5,6 +5,7 @@ import { ModalDismissError } from "../errors";
 import { useModalManager } from "../hooks/useModalManager";
 import { createModalRegistry } from "../registry";
 import {
+  RegistryRefreshDemo,
   StoryLayout,
   StoryRenderer,
   renameReportModal,
@@ -13,7 +14,6 @@ import {
 } from "../stories";
 import { ModalProvider } from "./ModalProvider";
 import { DismissRejectDemo } from "./ModalProvider.stories.fixtures";
-import { RegistryRefreshDemo } from "./RegistryRefreshDemo";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { ReactElement } from "react";
 import type { RenameReportResult } from "../stories";

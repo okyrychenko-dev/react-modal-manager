@@ -7,6 +7,7 @@ import type {
   ConfirmModalResult,
   ModalComponentProps,
   ModalHandle,
+  ModalInstanceId,
   ModalManager,
   ModalRendererProps,
 } from "@okyrychenko-dev/react-modal-manager";
@@ -62,9 +63,28 @@ const directInfoHandle: ModalHandle<EmptyModalValue> = manager.open(infoModal);
 const registryInfoHandle: ModalHandle<EmptyModalValue> =
   infoRegistry.open("info");
 
-const confirmation: Promise<ConfirmModalResult> = manager.confirm({
+const confirmation: ModalHandle<ConfirmModalResult> = manager.confirm({
   title: "Continue?",
 });
+
+const registryConfirmation: ModalHandle<ConfirmModalResult> = registry.confirm({
+  title: "Registry confirmation",
+});
+const confirmationPromise: Promise<ConfirmModalResult> = confirmation;
+const confirmationId: ModalInstanceId = confirmation.instanceId;
+const registryConfirmationId: ModalInstanceId = registryConfirmation.instanceId;
+confirmation.dismiss();
+registryConfirmation.dismiss("close-all");
+void confirmation.then((result) => {
+  if (!result.confirmed) {
+    const reason: "cancel" | "dismiss" = result.reason;
+    return reason;
+  }
+  return result.confirmed;
+});
+void confirmationPromise;
+void confirmationId;
+void registryConfirmationId;
 
 function Renderer({ children, modal }: ModalRendererProps): ReactNode {
   modal.status satisfies "open" | "closing";

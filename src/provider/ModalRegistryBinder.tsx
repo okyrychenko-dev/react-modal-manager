@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect } from "react";
+import { type ReactNode, useEffect, useRef } from "react";
 import { useModalManager } from "../hooks";
 import { attachModalRegistry } from "../registry/createModalRegistry";
 import type { ModalRegistryAttachable } from "../registry/createModalRegistry";
@@ -14,13 +14,19 @@ export function ModalRegistryBinder(
 
   const manager = useModalManager();
 
+  const managerRef = useRef(manager);
+
   useEffect(() => {
-    const unbind = attachModalRegistry(registry, manager);
+    managerRef.current = manager;
+  }, [manager]);
+
+  useEffect(() => {
+    const unbind = attachModalRegistry(registry, () => managerRef.current);
 
     return () => {
       unbind();
     };
-  }, [registry, manager]);
+  }, [registry]);
 
   return null;
 }

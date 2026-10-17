@@ -24,7 +24,7 @@ import type {
 const MODAL_REGISTRY_ATTACH = Symbol("modal-registry-attach");
 
 export interface ModalRegistryAttachable {
-  [MODAL_REGISTRY_ATTACH](manager: ModalManager): VoidFunction;
+  [MODAL_REGISTRY_ATTACH](getManager: () => ModalManager): VoidFunction;
 }
 
 export function isModalRegistryAttachable(
@@ -35,24 +35,24 @@ export function isModalRegistryAttachable(
 
 export function attachModalRegistry(
   registry: ModalRegistryAttachable,
-  manager: ModalManager,
+  getManager: () => ModalManager,
 ): VoidFunction {
-  return registry[MODAL_REGISTRY_ATTACH](manager);
+  return registry[MODAL_REGISTRY_ATTACH](getManager);
 }
 
 export function createModalRegistry<
   const TDefinitions extends ModalRegistryDefinitions,
 >(definitions: TDefinitions): ModalRegistry<TDefinitions> {
-  let attachments: Array<{ manager: ModalManager }> = [];
+  let attachments: Array<{ getManager: () => ModalManager }> = [];
 
   const activeManager = (): ModalManager => {
     assertTrue(isNonEmptyArray(attachments), MODAL_CONTROLLER_UNBOUND_ERROR);
 
-    return attachments[attachments.length - 1].manager;
+    return attachments[attachments.length - 1].getManager();
   };
 
-  const attach = (manager: ModalManager): VoidFunction => {
-    const attachment = { manager };
+  const attach = (getManager: () => ModalManager): VoidFunction => {
+    const attachment = { getManager };
     attachments.push(attachment);
 
     return () => {
@@ -74,7 +74,7 @@ export function createModalRegistry<
   }
 
   const registry: ModalRegistry<TDefinitions> & {
-    [MODAL_REGISTRY_ATTACH]: (manager: ModalManager) => VoidFunction;
+    [MODAL_REGISTRY_ATTACH]: (getManager: () => ModalManager) => VoidFunction;
   } = {
     closeAll: (reason?: ModalDismissReason) => {
       activeManager().closeAll(reason);

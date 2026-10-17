@@ -1,7 +1,8 @@
 import { isInstanceOf } from "@okyrychenko-dev/type-utils";
 import { useState } from "react";
 import { expect, userEvent, waitFor, within } from "storybook/test";
-import { ModalDismissError, useModalManager } from "../index";
+import { ModalDismissError } from "../errors";
+import { useModalManager } from "../hooks/useModalManager";
 import {
   StoryLayout,
   renameReportModal,
@@ -29,7 +30,15 @@ function describeRendererError(error: unknown): string {
   return "Rejected";
 }
 
-function CustomRendererDemo(): ReactElement {
+interface CustomRendererDemoProps {
+  title: string;
+  description: string;
+}
+
+function CustomRendererDemo({
+  title,
+  description,
+}: CustomRendererDemoProps): ReactElement {
   const modal = useModalManager();
   const [result, setResult] = useState(
     "Open a modal to see the renderer badge",
@@ -55,9 +64,9 @@ function CustomRendererDemo(): ReactElement {
 
   return (
     <StoryLayout
-      description="ModalViewport maps active lifecycle instances through the renderer seam. The badge exposes instance identity and the open-to-closing transition."
+      description={description}
       results={[{ label: "Renderer flow", value: result }]}
-      title="Custom Renderer Lifecycle"
+      title={title}
     >
       <div className={styles.buttonRow}>
         <button
@@ -73,7 +82,21 @@ function CustomRendererDemo(): ReactElement {
 }
 
 function renderCustomRenderer(): ReactElement {
-  return <CustomRendererDemo />;
+  return (
+    <CustomRendererDemo
+      title="Custom Renderer Lifecycle"
+      description="ModalViewport maps active lifecycle instances through the renderer seam. The badge exposes instance identity and the open-to-closing transition."
+    />
+  );
+}
+
+function renderImmediateRemoval(): ReactElement {
+  return (
+    <CustomRendererDemo
+      title="Immediate Removal"
+      description="A zero or negative close delay removes a settled modal immediately, without an observable closing render. Open and rename the modal to see its result, then repeat."
+    />
+  );
 }
 
 async function openRenderedModal(
@@ -121,7 +144,12 @@ const playImmediateRemoval: NonNullable<Story["play"]> = async ({
   canvasElement,
 }) => {
   const canvas = within(canvasElement);
+  await expect(
+    canvas.getByRole("heading", { name: "Immediate Removal" }),
+  ).toBeInTheDocument();
   const dialog = await openRenderedModal(canvasElement);
+  await expect(dialog).toBeInTheDocument();
+  await expect(canvas.getByText(/ · open$/)).toBeInTheDocument();
   await userEvent.click(
     within(dialog).getByRole("button", {
       name: "Rename",
@@ -139,14 +167,21 @@ export const CustomRenderer: Story = {
 };
 
 export const CustomRendererInteraction: Story = {
-  decorators: [withModalProvider],
-  render: renderCustomRenderer,
+  ...CustomRenderer,
   tags: ["!dev", "!autodocs"],
   play: playCustomRenderer,
 };
 
 export const ImmediateRemoval: Story = {
   decorators: [withImmediateModalProvider],
-  render: renderCustomRenderer,
-  play: playImmediateRemoval,
+  render: renderImmediateRemoval,
+};
+
+export const ImmediateRemovalInteraction: Story = {
+  ...ImmediateRemoval,
+  tags: ["!dev", "!autodocs"],
+  play: async (context) => {
+    await playImmediateRemoval(context);
+    await playImmediateRemoval(context);
+  },
 };

@@ -68,6 +68,48 @@ describe("ConfirmModal a11y", () => {
     expect(screen.getByRole("button", { name: "Keep" })).toHaveFocus();
   });
 
+  it("should preserve upper focus and restore the opener after lower removal", () => {
+    const opener = document.createElement("button");
+
+    document.body.append(opener);
+    opener.focus();
+
+    const lower = renderConfirmModal({
+      title: "Lower",
+      confirmText: "Lower action",
+    });
+    const upper = renderConfirmModal({
+      title: "Upper",
+      confirmText: "Upper action",
+    });
+
+    lower.unmount();
+
+    expect(screen.getByRole("button", { name: "Upper action" })).toHaveFocus();
+
+    upper.unmount();
+
+    expect(opener).toHaveFocus();
+
+    opener.remove();
+  });
+
+  it("should return to a remaining confirmation when its opener is disabled", () => {
+    const lower = renderConfirmModal({
+      title: "Lower",
+      confirmText: "Lower action",
+    });
+    const lowerAction = screen.getByRole("button", { name: "Lower action" });
+    const upper = renderConfirmModal({ title: "Upper" });
+
+    lowerAction.setAttribute("disabled", "");
+    upper.unmount();
+
+    expect(screen.getByRole("button", { name: "Cancel" })).toHaveFocus();
+
+    lower.unmount();
+  });
+
   it("should tolerate a previously focused non-HTML element", () => {
     const previouslyFocused = document.createElementNS(
       "http://www.w3.org/2000/svg",

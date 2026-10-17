@@ -429,10 +429,12 @@ if (result.confirmed) {
 }
 ```
 
-The bundled `confirmModal` is an **accessible, unstyled reference implementation**:
+The built-in confirmation does not guarantee background inertness or pointer isolation. Dialog semantics and Tab handling do not establish full modal isolation or complete accessibility compliance. Use a suitable dialog implementation when your application needs those guarantees.
+
+The bundled `confirmModal` is an **unstyled reference implementation with basic accessibility behavior**:
 
 - `role="dialog"` with `aria-modal="true"`, `aria-labelledby` (title) and `aria-describedby` (description)
-- the confirm button receives focus on open (the cancel button for `variant: "danger"`, so a stray Enter never confirms a destructive action), and focus returns to the previously focused element when the modal is removed
+- the confirm button receives focus on open (the cancel button for `variant: "danger"`, so a stray Enter never confirms a destructive action), and removing a lower confirmation preserves focus in the upper one; removing the active confirmation returns focus to a connected, enabled opener or a remaining confirmation
 - `Tab` / `Shift+Tab` are trapped within the dialog
 - `Escape` dismisses it (unless `dismissible: false`)
 

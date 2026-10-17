@@ -13,6 +13,7 @@ import {
 } from "../stories";
 import { ModalProvider } from "./ModalProvider";
 import { DismissRejectDemo } from "./ModalProvider.stories.fixtures";
+import { RegistryRefreshDemo } from "./RegistryRefreshDemo";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { ReactElement } from "react";
 import type { RenameReportResult } from "../stories";
@@ -473,5 +474,46 @@ export const ProviderBoundRegistryInteraction: Story = {
         await expect(canvas.queryByRole("dialog")).not.toBeInTheDocument();
       });
     }
+  },
+};
+
+export const RegistryConfigurationRefresh: Story = {
+  render: () => <RegistryRefreshDemo />,
+};
+
+export const RegistryConfigurationRefreshInteraction: Story = {
+  ...RegistryConfigurationRefresh,
+  tags: ["!dev", "!autodocs"],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole("button", { name: "Mount B" }));
+    await userEvent.click(canvas.getByRole("button", { name: "Update A" }));
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Open through registry" }),
+    );
+    const providerB = within(canvas.getByTestId("provider-b"));
+    const dialogB = await providerB.findByRole("dialog", {
+      name: "Routing confirmation",
+    });
+    await userEvent.click(
+      within(dialogB).getByRole("button", { name: "Confirm" }),
+    );
+    await waitFor(() => expect(dialogB).not.toBeInTheDocument());
+    await userEvent.click(canvas.getByRole("button", { name: "Unmount B" }));
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Open through registry" }),
+    );
+    const providerA = within(canvas.getByTestId("provider-a"));
+    const dialogA = await providerA.findByRole("dialog", {
+      name: "Routing confirmation",
+    });
+    await expect(
+      within(dialogA).getByText("Updated A configuration"),
+    ).toBeInTheDocument();
+    await userEvent.click(
+      within(dialogA).getByRole("button", { name: "Finish" }),
+    );
+    await waitFor(() => expect(dialogA).not.toBeInTheDocument());
+    await expect(canvas.getByRole("status")).toHaveTextContent("Confirmed");
   },
 };

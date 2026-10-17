@@ -1,6 +1,7 @@
 import { isInstanceOf } from "@okyrychenko-dev/type-utils";
 import { useEffect, useRef, useState } from "react";
-import { ModalDismissError, ModalRejectError, useModalManager } from "../index";
+import { ModalDismissError, ModalRejectError } from "../errors";
+import { useModalManager } from "../hooks/useModalManager";
 import {
   StoryLayout,
   rejectWithStringModal,

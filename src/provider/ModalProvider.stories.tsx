@@ -1,12 +1,9 @@
-import { isInstanceOf } from "@okyrychenko-dev/type-utils";
+import { assertDefined, isInstanceOf } from "@okyrychenko-dev/type-utils";
 import { useMemo, useState } from "react";
 import { expect, userEvent, waitFor, within } from "storybook/test";
-import {
-  ModalDismissError,
-  ModalProvider,
-  createModalRegistry,
-  useModalManager,
-} from "../index";
+import { ModalDismissError } from "../errors";
+import { useModalManager } from "../hooks/useModalManager";
+import { createModalRegistry } from "../registry";
 import {
   StoryLayout,
   StoryRenderer,
@@ -14,6 +11,7 @@ import {
   styles,
   withModalProvider,
 } from "../stories";
+import { ModalProvider } from "./ModalProvider";
 import { DismissRejectDemo } from "./ModalProvider.stories.fixtures";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { ReactElement } from "react";
@@ -148,12 +146,18 @@ function ProviderIsolationDemo(): ReactElement {
   return (
     <div className={styles.shell}>
       <div className={styles.workspace}>
-        <ModalProvider closeDelayMs={220} renderer={StoryRenderer}>
-          <TypedModalDemo />
-        </ModalProvider>
-        <ModalProvider closeDelayMs={220} renderer={StoryRenderer}>
-          <TypedModalDemo />
-        </ModalProvider>
+        <section aria-label="Provider A">
+          <h2>Provider A</h2>
+          <ModalProvider closeDelayMs={220} renderer={StoryRenderer}>
+            <TypedModalDemo />
+          </ModalProvider>
+        </section>
+        <section aria-label="Provider B">
+          <h2>Provider B</h2>
+          <ModalProvider closeDelayMs={220} renderer={StoryRenderer}>
+            <TypedModalDemo />
+          </ModalProvider>
+        </section>
       </div>
     </div>
   );
@@ -280,8 +284,7 @@ export const TypedCustomModal: Story = {
 };
 
 export const TypedCustomModalInteraction: Story = {
-  decorators: [withModalProvider],
-  render: renderTypedModal,
+  ...TypedCustomModal,
   tags: ["!dev", "!autodocs"],
   play: playTypedCustomModal,
 };
@@ -292,8 +295,7 @@ export const DismissAndReject: Story = {
 };
 
 export const RepeatedManagerDismissInteraction: Story = {
-  decorators: [withModalProvider],
-  render: renderDismissAndReject,
+  ...DismissAndReject,
   tags: ["!dev", "!autodocs"],
   play: playRepeatedManagerDismiss,
 };
@@ -309,4 +311,167 @@ export const ProviderIsolation: Story = {
 
 export const ProviderBoundRegistry: Story = {
   render: renderProviderBoundRegistry,
+};
+
+export const ProviderIsolationInteraction: Story = {
+  ...ProviderIsolation,
+  tags: ["!dev", "!autodocs"],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const first = within(canvas.getByRole("region", { name: "Provider A" }));
+    const second = within(canvas.getByRole("region", { name: "Provider B" }));
+    await userEvent.click(first.getByRole("button", { name: "Rename report" }));
+    const firstDialog = await first.findByRole("dialog");
+    await expect(second.queryByRole("dialog")).not.toBeInTheDocument();
+    await expect(second.getByText("No modal result yet")).toBeInTheDocument();
+    await userEvent.click(
+      second.getByRole("button", { name: "Rename report" }),
+    );
+    const secondDialog = await second.findByRole("dialog");
+    await userEvent.click(
+      within(firstDialog).getByRole("button", { name: "Rename" }),
+    );
+    await expect(
+      await first.findByText('Renamed to "Quarterly revenue"'),
+    ).toBeInTheDocument();
+    await expect(secondDialog).toBeInTheDocument();
+    await expect(second.getByText("No modal result yet")).toBeInTheDocument();
+    await userEvent.click(
+      within(secondDialog).getByRole("button", { name: "Cancel" }),
+    );
+    await expect(
+      await second.findByText("Cancelled with typed result"),
+    ).toBeInTheDocument();
+  },
+};
+
+export const TypedCancellationInteraction: Story = {
+  ...TypedCustomModal,
+  tags: ["!dev", "!autodocs"],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Rename report" }),
+    );
+    const dialog = await canvas.findByRole("dialog");
+    await userEvent.click(
+      within(dialog).getByRole("button", { name: "Cancel" }),
+    );
+    await expect(
+      await canvas.findByText("Cancelled with typed result"),
+    ).toBeInTheDocument();
+  },
+};
+
+export const ModalDismissInteraction: Story = {
+  ...TypedCustomModal,
+  tags: ["!dev", "!autodocs"],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Rename report" }),
+    );
+    const dialog = await canvas.findByRole("dialog");
+    await userEvent.click(
+      within(dialog).getByRole("button", { name: "Dismiss" }),
+    );
+    await expect(
+      await canvas.findByText("Dismissed: dismiss"),
+    ).toBeInTheDocument();
+  },
+};
+
+export const RepeatedHandleDismissInteraction: Story = {
+  ...DismissAndReject,
+  tags: ["!dev", "!autodocs"],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    for (let cycle = 0; cycle < 2; cycle += 1) {
+      await userEvent.click(
+        canvas.getByRole("button", { name: "Auto dismiss from handle" }),
+      );
+      await expect(await canvas.findByRole("dialog")).toBeInTheDocument();
+      await waitFor(async () => {
+        await expect(canvas.queryByRole("dialog")).not.toBeInTheDocument();
+      });
+      await expect(canvas.getByText("Dismissed: dismiss")).toBeInTheDocument();
+    }
+  },
+};
+
+export const UnknownRejectionInteraction: Story = {
+  ...DismissAndReject,
+  tags: ["!dev", "!autodocs"],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(
+      canvas.getByRole("button", { name: "Open rejecting modal" }),
+    );
+    const dialog = await canvas.findByRole("dialog", {
+      name: "Reject with string",
+    });
+    await userEvent.click(
+      within(dialog).getByRole("button", { name: "Reject string" }),
+    );
+    await expect(
+      await canvas.findByText("Wrapped reject value: network unavailable"),
+    ).toBeInTheDocument();
+  },
+};
+
+export const StackedModalsInteraction: Story = {
+  ...StackedModals,
+  tags: ["!dev", "!autodocs"],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    for (const count of [3, 6]) {
+      await userEvent.click(canvas.getByRole("button", { name: "Open stack" }));
+      const dialogs = await canvas.findAllByRole("dialog");
+      await expect(dialogs).toHaveLength(3);
+      for (const [index, name] of ["Revenue", "Costs", "Forecast"].entries()) {
+        const dialog = dialogs[index];
+        assertDefined(dialog);
+        await expect(
+          within(dialog).getByRole("textbox", { name: "Report name" }),
+        ).toHaveValue(name);
+      }
+      await userEvent.click(canvas.getByRole("button", { name: "Close all" }));
+      await expect(await canvas.findByText(String(count))).toBeInTheDocument();
+      await expect(canvas.getByText("close-all")).toBeInTheDocument();
+      await waitFor(async () => {
+        await expect(canvas.queryAllByRole("dialog")).toHaveLength(0);
+      });
+    }
+  },
+};
+
+export const ProviderBoundRegistryInteraction: Story = {
+  ...ProviderBoundRegistry,
+  tags: ["!dev", "!autodocs"],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    for (let cycle = 0; cycle < 2; cycle += 1) {
+      await userEvent.click(
+        canvas.getByRole("button", { name: "Run external command" }),
+      );
+      const dialog = await canvas.findByRole("dialog");
+      const input = within(dialog).getByRole("textbox", {
+        name: "Report name",
+      });
+      await expect(input).toHaveValue("Registry report");
+      await userEvent.clear(input);
+      await userEvent.type(input, `External result ${String(cycle)}`);
+      await userEvent.click(
+        within(dialog).getByRole("button", { name: "Rename" }),
+      );
+      await expect(
+        await canvas.findByText(
+          `Renamed to "External result ${String(cycle)}"`,
+        ),
+      ).toBeInTheDocument();
+      await waitFor(async () => {
+        await expect(canvas.queryByRole("dialog")).not.toBeInTheDocument();
+      });
+    }
+  },
 };

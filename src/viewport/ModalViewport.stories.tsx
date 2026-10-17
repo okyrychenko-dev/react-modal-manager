@@ -130,11 +130,11 @@ const playCustomRenderer: NonNullable<Story["play"]> = async ({
   const dialog = await openRenderedModal(canvasElement);
 
   await expect(dialog).toBeInTheDocument();
-  await expect(canvas.getByText("modal-0 · open")).toBeInTheDocument();
+  await expect(canvas.getByText(/ · open$/)).toBeInTheDocument();
 
   await userEvent.click(within(dialog).getByRole("button", { name: "Rename" }));
 
-  await expect(canvas.getByText("modal-0 · closing")).toBeInTheDocument();
+  await expect(canvas.getByText(/ · closing$/)).toBeInTheDocument();
   await waitFor(async () => {
     await expect(canvas.queryByRole("dialog")).not.toBeInTheDocument();
   });

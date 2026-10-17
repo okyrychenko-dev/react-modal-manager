@@ -1,15 +1,13 @@
 import { isDefined } from "@okyrychenko-dev/type-utils";
 import { useState } from "react";
-import { ModalProvider, createModal } from "../index";
+import { ModalProvider } from "../provider";
+import { createModal } from "../registry";
 import styles from "./modalStoryKit.module.css";
 import type { Decorator } from "@storybook/react-vite";
 import type { ChangeEvent, ReactElement, ReactNode } from "react";
-import type {
-  ConfirmModalParams,
-  ConfirmModalResult,
-  ModalComponentProps,
-  ModalRendererProps,
-} from "../index";
+import type { ConfirmModalParams, ConfirmModalResult } from "../confirm";
+import type { ModalComponentProps } from "../types";
+import type { ModalRendererProps } from "../viewport";
 
 export interface RenameReportInput {
   currentName: string;
@@ -208,6 +206,7 @@ function CustomConfirmModal(
   return (
     <section aria-label="Custom confirm" className={styles.modal} role="dialog">
       <h2 className={styles.modalTitle}>{input.title}</h2>
+      <p className={styles.modalText}>Custom confirmation implementation</p>
       {isDefined(input.description) && (
         <p className={styles.modalText}>{input.description}</p>
       )}

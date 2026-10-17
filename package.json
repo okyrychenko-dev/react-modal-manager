@@ -31,7 +31,7 @@
     "benchmark:lifecycle": "pnpm run build && NODE_ENV=production node scripts/benchmark-lifecycle.mjs",
     "competitive:check": "node scripts/check-competitive-package.mjs",
     "package:check": "node scripts/check-packed-package.mjs && attw --pack . && publint",
-    "release:check": "pnpm run check && pnpm run build-storybook && pnpm run package:check",
+    "release:check": "pnpm run check && pnpm run test:storybook && pnpm run build-storybook && pnpm run package:check",
     "dev": "tsup --watch",
     "clean": "rm -rf dist",
     "prepublishOnly": "pnpm run clean && pnpm run build",
@@ -46,7 +46,8 @@
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "test:storybook": "vitest run --config vitest.storybook.config.ts"
   },
   "keywords": [
     "react",
@@ -75,6 +76,7 @@
     "@arethetypeswrong/cli": "^0.18.5",
     "@eslint/js": "^9.39.1",
     "@storybook/addon-docs": "10.2.16",
+    "@storybook/addon-vitest": "10.2.16",
     "@storybook/react-vite": "10.2.16",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
@@ -84,6 +86,7 @@
     "@types/react-dom": "^19.2.7",
     "@typescript-eslint/eslint-plugin": "^8.46.4",
     "@typescript-eslint/parser": "^8.46.4",
+    "@vitest/browser-playwright": "4.1.11",
     "@vitest/coverage-v8": "^4.1.11",
     "esbuild": "0.27.7",
     "eslint": "^9.39.1",
@@ -92,6 +95,7 @@
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.0.1",
     "happy-dom": "^20.0.10",
+    "playwright": "^1.64.1",
     "prettier": "^3.6.2",
     "publint": "^0.3.24",
     "react": "^19.2.0",

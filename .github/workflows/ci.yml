@@ -81,6 +81,18 @@ jobs:
         if: matrix.node == 22
         run: pnpm run package:check
 
+      - name: Install Chromium
+        if: matrix.node == 22
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Test Storybook in Chromium
+        if: matrix.node == 22
+        run: pnpm run test:storybook
+
+      - name: Build Storybook
+        if: matrix.node == 22
+        run: pnpm run build-storybook
+
       - name: Upload coverage
         if: matrix.node == 22
         uses: codecov/codecov-action@v4

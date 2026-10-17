@@ -3,6 +3,7 @@ import {
   act,
   fireEvent,
   render,
+  renderHook,
   screen,
   waitFor,
 } from "@testing-library/react";
@@ -774,6 +775,131 @@ describe("ModalProvider", () => {
       status: "renamed",
     });
   });
+
+  it.each([false, true])(
+    "should preserve registry routing after configuration refresh (Strict Mode: %s)",
+    async (strict) => {
+      const registry = createModalRegistry({});
+      const initial = (
+        <>
+          <ModalProvider registry={registry}>{null}</ModalProvider>
+          <ModalProvider registry={registry}>{null}</ModalProvider>
+        </>
+      );
+      const updated = (
+        <>
+          <ModalProvider registry={registry} confirmModal={customConfirmModal}>
+            {null}
+          </ModalProvider>
+          <ModalProvider registry={registry}>{null}</ModalProvider>
+        </>
+      );
+      const { rerender } = render(
+        strict ? <StrictMode>{initial}</StrictMode> : initial,
+      );
+      rerender(strict ? <StrictMode>{updated}</StrictMode> : updated);
+
+      let result: Optional<ReturnType<typeof registry.confirm>>;
+      act(() => {
+        result = registry.confirm({ title: "Latest provider" });
+        void result.catch(() => undefined);
+      });
+      expect(
+        screen.getByRole("dialog", { name: "Latest provider" }),
+      ).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
+      await expect(result).resolves.toEqual({ confirmed: true });
+
+      const fallback = (
+        <ModalProvider registry={registry} confirmModal={customConfirmModal}>
+          {null}
+        </ModalProvider>
+      );
+      // Keep the first provider at the same position while removing the second.
+      rerender(strict ? <StrictMode>{fallback}</StrictMode> : fallback);
+      act(() => {
+        result = registry.confirm({ title: "Updated fallback" });
+      });
+      expect(
+        screen.getByRole("dialog", { name: "Custom confirm" }),
+      ).toHaveTextContent("Updated fallback");
+      fireEvent.click(screen.getByRole("button", { name: "Custom cancel" }));
+      await expect(result).resolves.toEqual({
+        confirmed: false,
+        reason: "cancel",
+      });
+    },
+  );
+
+  it("should move a provider to a replacement registry with its updated configuration", async () => {
+    const original = createModalRegistry({});
+    const replacement = createModalRegistry({});
+    const { rerender, unmount } = render(
+      <ModalProvider registry={original}>{null}</ModalProvider>,
+    );
+    rerender(
+      <ModalProvider registry={replacement} confirmModal={customConfirmModal}>
+        {null}
+      </ModalProvider>,
+    );
+    expect(original.isReady()).toBe(false);
+    expect(replacement.isReady()).toBe(true);
+    let result: Optional<ReturnType<typeof replacement.confirm>>;
+    act(() => {
+      result = replacement.confirm({ title: "Replacement configuration" });
+    });
+    expect(
+      screen.getByRole("dialog", { name: "Custom confirm" }),
+    ).toHaveTextContent("Replacement configuration");
+    fireEvent.click(screen.getByRole("button", { name: "Custom cancel" }));
+    await expect(result).resolves.toEqual({
+      confirmed: false,
+      reason: "cancel",
+    });
+    unmount();
+    expect(replacement.isReady()).toBe(false);
+  });
+
+  it.each(["manager", "registry"])(
+    "should retain a provider-bound confirmation handle through %s",
+    async (source) => {
+      const registry = createModalRegistry({});
+      const { result } = renderHook(() => useModalManager(), {
+        wrapper: ({ children }) => (
+          <ModalProvider registry={registry}>{children}</ModalProvider>
+        ),
+      });
+      let firstHandle: Optional<ReturnType<typeof registry.confirm>>;
+      act(() => {
+        const manager = source === "manager" ? result.current : registry;
+        firstHandle = manager.confirm({ title: "First owner" });
+      });
+      const first = firstHandle;
+      assertDefined(first);
+      const dismissed = expect(first).rejects.toMatchObject({
+        reason: "dismiss",
+      });
+
+      render(<ModalProvider registry={registry}>{null}</ModalProvider>);
+      let secondHandle: Optional<ReturnType<typeof registry.confirm>>;
+      act(() => {
+        secondHandle = registry.confirm({ title: "Second owner" });
+      });
+      const second = secondHandle;
+      assertDefined(second);
+      expect(first.instanceId).toBe(second.instanceId);
+      act(() => first.dismiss());
+      await dismissed;
+      expect(
+        screen.queryByRole("dialog", { name: "First owner" }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getByRole("dialog", { name: "Second owner" }),
+      ).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
+      await expect(second).resolves.toEqual({ confirmed: true });
+    },
+  );
 
   it("should keep a modal handle attached to the provider that created it", async () => {
     const registry = createModalRegistry({ renameReport: renameReportModal });

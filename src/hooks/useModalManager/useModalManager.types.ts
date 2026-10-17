@@ -16,7 +16,7 @@ export interface ModalManager {
     modal: ModalDefinition<TInput, TResult>,
     ...args: ModalOpenArgs<TInput>
   ) => ModalHandle<TResult>;
-  confirm: (params: ConfirmModalParams) => Promise<ConfirmModalResult>;
+  confirm: (params: ConfirmModalParams) => ModalHandle<ConfirmModalResult>;
   dismiss: (instanceId: ModalInstanceId, reason?: ModalDismissReason) => void;
   closeAll: (reason?: ModalDismissReason) => void;
 }

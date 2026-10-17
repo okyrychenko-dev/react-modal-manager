@@ -119,7 +119,7 @@ Start with the smallest API that solves the current problem, then add the next c
 6. Split independent application areas into [provider scopes](#provider-scope).
 7. Follow the [Next.js App Router guidance](#nextjs-app-router-ssr) for SSR and React Server Components.
 
-The complete path is compile-checked as a package consumer in [`examples/adoption-paths.typecheck.tsx`](examples/adoption-paths.typecheck.tsx). The client boundary used by a server layout is checked separately in [`examples/next-app-router-provider.typecheck.tsx`](examples/next-app-router-provider.typecheck.tsx). Interactive equivalents live in Storybook under `Components/confirmModal`, `Context/ModalProvider`, and `Components/ModalViewport`.
+The complete path is compile-checked as a package consumer in [`examples/adoption-paths.typecheck.tsx`](examples/adoption-paths.typecheck.tsx). The client boundary used by a server layout is checked separately in [`examples/next-app-router-provider.typecheck.tsx`](examples/next-app-router-provider.typecheck.tsx). Interactive equivalents live in Storybook under `Components/ConfirmModal`, `Context/ModalProvider`, and `Components/ModalViewport`.
 
 ## Type Safety
 

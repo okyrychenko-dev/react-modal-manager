@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { expect, userEvent, within } from "storybook/test";
-import { useModalManager } from "../index";
+import { useModalManager } from "../hooks/useModalManager";
 import {
   StoryLayout,
   styles,
@@ -9,7 +9,10 @@ import {
 } from "../stories";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { ReactElement } from "react";
-import type { ConfirmModalParams, ConfirmModalResult } from "../index";
+import type {
+  ConfirmModalParams,
+  ConfirmModalResult,
+} from "./ConfirmModal.types";
 
 function describeConfirmResult(result: ConfirmModalResult): string {
   if (result.confirmed) {
@@ -54,9 +57,8 @@ function renderConfirmDemo(args: ConfirmModalParams): ReactElement {
   return <ConfirmDemo params={args} />;
 }
 
-const meta = {
-  title: "Components/confirmModal",
-  decorators: [withModalProvider],
+const meta: Meta<ConfirmModalParams> = {
+  title: "Components/ConfirmModal",
   parameters: {
     layout: "fullscreen",
   },
@@ -79,11 +81,11 @@ const meta = {
     },
   },
   render: renderConfirmDemo,
-} satisfies Meta<ConfirmModalParams>;
+};
 
 export default meta;
 
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<ConfirmModalParams>;
 
 const playBuiltInConfirm: NonNullable<Story["play"]> = async ({
   canvasElement,
@@ -128,8 +130,11 @@ const playCustomConfirm: NonNullable<Story["play"]> = async ({
 
   await userEvent.click(canvas.getByRole("button", { name: "Open confirm" }));
 
-  const dialog = await canvas.findByRole("dialog");
+  const dialog = await canvas.findByRole("dialog", { name: "Custom confirm" });
 
+  await expect(
+    within(dialog).getByText("Custom confirmation implementation"),
+  ).toBeInTheDocument();
   await userEvent.click(
     within(dialog).getByRole("button", { name: "Custom confirm" }),
   );
@@ -137,9 +142,10 @@ const playCustomConfirm: NonNullable<Story["play"]> = async ({
   await expect(await canvas.findByText("Confirmed")).toBeInTheDocument();
 };
 
-export const BuiltInConfirm: Story = {};
+export const BuiltInConfirm: Story = { decorators: [withModalProvider] };
 
 export const NonDismissible: Story = {
+  decorators: [withModalProvider],
   args: {
     dismissible: false,
     title: "Non-dismissible confirm",
@@ -154,6 +160,7 @@ export const CustomConfirmOverride: Story = {
 };
 
 export const BuiltInConfirmInteraction: Story = {
+  ...BuiltInConfirm,
   tags: ["!dev", "!autodocs"],
   play: playBuiltInConfirm,
 };

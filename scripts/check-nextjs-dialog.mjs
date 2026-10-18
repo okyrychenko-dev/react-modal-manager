@@ -20,6 +20,10 @@ import {
   isOneOf,
 } from "@okyrychenko-dev/type-utils";
 import { chromium } from "playwright";
+import {
+  expectDialogOutcome,
+  verifyUnavailableOpenerFallback,
+} from "./__tests__/nextjs-dialog-focus.test.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const temporary = mkdtempSync(join(tmpdir(), "modal-nextjs-"));
@@ -152,15 +156,6 @@ try {
     exact: true,
   });
   const dialog = page.getByRole("dialog", { name: "Delete report?" });
-  const outcome = page.getByRole("status");
-  async function expectOutcome(text) {
-    await page.getByRole("status").filter({ hasText: text }).waitFor();
-    assertTrue(
-      (await outcome.innerText()) === text,
-      `Wrong outcome: expected ${text}`,
-    );
-    await dialog.waitFor({ state: "hidden" });
-  }
   await open.click();
   await dialog.waitFor();
   assertTrue(
@@ -196,35 +191,30 @@ try {
   await dialog
     .getByRole("button", { name: "Delete report", exact: true })
     .click();
-  await expectOutcome("Confirmed");
+  await expectDialogOutcome(page, "Confirmed", open);
   await open.focus();
   await page.keyboard.press("Enter");
   await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
-  await expectOutcome("Cancelled: cancel");
-  assertTrue(
-    await open.evaluate((element) => element === document.activeElement),
-    "Opener focus not restored",
-  );
+  await expectDialogOutcome(page, "Cancelled: cancel", open);
   await open.click();
   await page.keyboard.press("Escape");
-  await expectOutcome("Dismissed: dismiss");
+  await expectDialogOutcome(page, "Dismissed: dismiss", open);
   await open.click();
   await dialog.getByRole("button", { name: "Dismiss retained handle" }).click();
-  await expectOutcome("Dismissed: dismiss");
+  await expectDialogOutcome(page, "Dismissed: dismiss", open);
   await open.click();
   await dialog.getByRole("button", { name: "Unmount launcher" }).click();
-  await expectOutcome("Dismissed: dismiss");
-  await page.getByRole("button", { name: "Mount launcher" }).waitFor();
-  assertTrue(
-    await page
-      .locator("#workspace-focus")
-      .evaluate((element) => element === document.activeElement),
-    "Removed opener did not fall back to workspace focus",
+  await expectDialogOutcome(
+    page,
+    "Dismissed: dismiss",
+    page.locator("#workspace-focus"),
   );
+  await page.getByRole("button", { name: "Mount launcher" }).waitFor();
   await page.getByRole("button", { name: "Mount launcher" }).click();
   await open.click();
   await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
-  await expectOutcome("Cancelled: cancel");
+  await expectDialogOutcome(page, "Cancelled: cancel", open);
+  await verifyUnavailableOpenerFallback(page);
   await page.close();
   assertTrue(failures.length === 0, failures.join("\n"));
   const manifest = JSON.parse(readFileSync(join(app, "package.json"), "utf8"));

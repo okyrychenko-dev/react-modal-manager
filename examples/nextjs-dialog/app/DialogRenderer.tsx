@@ -1,7 +1,7 @@
 "use client";
 
 import { useModalManager } from "@okyrychenko-dev/react-modal-manager";
-import { isInstanceOf } from "@okyrychenko-dev/type-utils";
+import { isDefined, isInstanceOf } from "@okyrychenko-dev/type-utils";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useRef } from "react";
 import type { ModalRendererProps } from "@okyrychenko-dev/react-modal-manager";
@@ -33,11 +33,19 @@ export function DialogRenderer(props: ModalRendererProps): ReactNode {
     event.preventDefault();
     const target = opener.current;
 
-    if (target?.isConnected && !target.closest("[inert]")) {
+    if (
+      isDefined(target) &&
+      target.isConnected &&
+      !target.matches(":disabled") &&
+      !target.closest('[hidden], [inert], [aria-hidden="true"]')
+    ) {
       target.focus();
-    } else {
-      document.getElementById("workspace-focus")?.focus();
+      if (document.activeElement === target) {
+        return;
+      }
     }
+
+    document.getElementById("workspace-focus")?.focus();
   }
 
   return (

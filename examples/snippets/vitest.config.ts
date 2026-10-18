@@ -4,7 +4,7 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   root: fileURLToPath(new URL(".", import.meta.url)),
   test: {
-    include: ["*.test.{ts,tsx}"],
+    include: ["__tests__/*.test.{ts,tsx}"],
     environment: "happy-dom",
     globals: true,
   },

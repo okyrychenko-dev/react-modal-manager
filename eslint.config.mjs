@@ -127,6 +127,13 @@ export default [
       "no-undef": "off",
     },
   },
+  {
+    files: ["scripts/**/*.mjs"],
+    rules: {
+      // JavaScript exports describe their boundary types through JSDoc.
+      "@typescript-eslint/explicit-module-boundary-types": "off",
+    },
+  },
   prettier,
   {
     rules: {

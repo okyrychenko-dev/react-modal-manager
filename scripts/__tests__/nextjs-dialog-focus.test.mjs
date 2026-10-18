@@ -3,6 +3,24 @@ import { expect } from "playwright/test";
 
 /**
  * @param {import("playwright").Page} page
+ * @param {string} outcome
+ * @param {import("playwright").Locator} focusTarget
+ * @returns {Promise<void>}
+ */
+export async function expectDialogOutcome(page, outcome, focusTarget) {
+  await expect(page.getByRole("status")).toHaveText(outcome);
+  await expect(
+    page.getByRole("dialog", { name: "Delete report?" }),
+  ).toBeHidden();
+  // Radix dispatches close-autofocus in a later task, after the dialog is gone.
+  await expect(
+    focusTarget,
+    `Focus was not restored after ${outcome}`,
+  ).toBeFocused();
+}
+
+/**
+ * @param {import("playwright").Page} page
  * @returns {Promise<void>}
  */
 export async function verifyUnavailableOpenerFallback(page) {

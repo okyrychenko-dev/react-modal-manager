@@ -32,6 +32,77 @@ import type { Optional } from "@okyrychenko-dev/type-utils";
 import type { RenameReportResult } from "./ModalProvider.fixtures";
 
 describe("ModalProvider", () => {
+  it.each(["manager", "registry"])(
+    "should expose removal completion on %s open and confirm handles",
+    async (source) => {
+      vi.useFakeTimers();
+      const registry = createModalRegistry({ rename: renameReportModal });
+      const { result, unmount } = renderHook(() => useModalManager(), {
+        wrapper: ({ children }) => (
+          <ModalProvider registry={registry} closeDelayMs={100}>
+            {children}
+          </ModalProvider>
+        ),
+      });
+      const handles: Array<ModalHandle<unknown>> = [];
+      act(() => {
+        if (source === "manager") {
+          handles.push(
+            result.current.open(renameReportModal, {
+              currentName: "Draft",
+              reportId: "report-1",
+            }),
+            result.current.confirm({ title: "Continue?" }),
+          );
+        } else {
+          handles.push(
+            registry.open("rename", {
+              currentName: "Draft",
+              reportId: "report-1",
+            }),
+            registry.confirm({ title: "Continue?" }),
+          );
+        }
+      });
+      const removed = vi.fn();
+      const removals = handles.map((handle) => handle.whenRemoved());
+      for (const removal of removals) {
+        void removal.then(removed);
+      }
+      const outcomes = handles.map((handle) =>
+        handle.catch((error: unknown) => error),
+      );
+      act(() => {
+        for (const handle of handles) {
+          handle.dismiss();
+        }
+      });
+      for (const outcome of outcomes) {
+        await expect(outcome).resolves.toMatchObject({ reason: "dismiss" });
+      }
+      expect(removed).not.toHaveBeenCalled();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(100);
+      });
+      await Promise.all(removals);
+      expect(removed).toHaveBeenCalledTimes(2);
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+      act(() => {
+        handles.push(registry.confirm({ title: "Pending at unmount" }));
+      });
+      const pending = handles[2];
+      const pendingOutcome = pending.catch((error: unknown) => error);
+      const pendingRemoval = pending.whenRemoved();
+      unmount();
+      await expect(pendingOutcome).resolves.toMatchObject({
+        reason: "provider-unmount",
+      });
+      await expect(pendingRemoval).resolves.toBeUndefined();
+      expect(vi.getTimerCount()).toBe(0);
+    },
+  );
+
   afterEach(() => {
     delete document.body.dataset.closeAllCount;
     delete document.body.dataset.confirmed;
@@ -1053,6 +1124,11 @@ describe("ModalProvider", () => {
     assertDefined(attachedFirstHandle);
     assertDefined(attachedSecondHandle);
 
+    const firstRemoval = attachedFirstHandle.whenRemoved();
+    const secondRemoved = vi.fn();
+
+    void attachedSecondHandle.whenRemoved().then(secondRemoved);
+
     act(() => {
       attachedFirstHandle.dismiss();
     });
@@ -1060,6 +1136,10 @@ describe("ModalProvider", () => {
     await expect(attachedFirstHandle).rejects.toMatchObject({
       reason: "dismiss",
     });
+
+    await expect(firstRemoval).resolves.toBeUndefined();
+
+    expect(secondRemoved).not.toHaveBeenCalled();
     expect(screen.queryByTestId("first-modal-shell")).not.toBeInTheDocument();
     expect(screen.getByTestId("second-modal-shell")).toBeInTheDocument();
 
@@ -1070,6 +1150,9 @@ describe("ModalProvider", () => {
     await expect(attachedSecondHandle).rejects.toMatchObject({
       reason: "dismiss",
     });
+
+    await expect(attachedSecondHandle.whenRemoved()).resolves.toBeUndefined();
+    expect(secondRemoved).toHaveBeenCalledTimes(1);
   });
 
   it("should preserve registry-driven modal behavior through Strict Mode effect replay", async () => {

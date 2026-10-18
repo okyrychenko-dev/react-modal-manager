@@ -9,6 +9,7 @@ import type {
 export interface ModalHandle<TResult> extends Promise<TResult> {
   instanceId: ModalInstanceId;
   dismiss: (reason?: ModalDismissReason) => void;
+  whenRemoved: () => Promise<void>;
 }
 
 export interface ModalManager {

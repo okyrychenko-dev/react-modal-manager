@@ -89,7 +89,7 @@ export function ConfirmationButton(): ReactNode {
 | Provider unmount                                            | Rejects pending operations with reason `"provider-unmount"`                         |
 | Custom content `close(result)` / `reject(error)`            | Resolves the typed result / rejects; non-Error rejections become `ModalRejectError` |
 
-For custom dialogs, the component chooses whether Cancel returns a result or dismisses. The result settles once, immediately; `closeDelayMs` can keep a closing instance rendered afterward. `await` therefore does not wait for an exit animation. See [typed flows and cleanup](https://github.com/okyrychenko-dev/react-modal-manager/blob/main/guides/typed-flows.md).
+For custom dialogs, the component chooses whether Cancel returns a result or dismisses. The result settles once, immediately; `closeDelayMs` can keep a closing instance rendered afterward. Use `await handle.whenRemoved()` to wait for lifecycle removal after that delay or provider disposal. This does not await a React DOM commit or a renderer's animation callback. See [typed flows and cleanup](https://github.com/okyrychenko-dev/react-modal-manager/blob/main/guides/typed-flows.md).
 
 ### Reference confirmation
 

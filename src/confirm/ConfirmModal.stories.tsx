@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { useModalManager } from "../hooks/useModalManager";
 import {
+  ConfirmStackDemo,
   StoryLayout,
   styles,
   withCustomConfirmModalProvider,
@@ -175,4 +176,54 @@ export const CustomConfirmOverrideInteraction: Story = {
   ...CustomConfirmOverride,
   tags: ["!dev", "!autodocs"],
   play: playCustomConfirm,
+};
+
+export const StackedFocus: Story = {
+  render: () => <ConfirmStackDemo />,
+};
+
+export const StackedFocusInteraction: Story = {
+  ...StackedFocus,
+  tags: ["!dev", "!autodocs"],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const opener = canvas.getByRole("button", { name: "Open lower" });
+    await userEvent.click(opener);
+    await userEvent.keyboard("b");
+    const upper = await canvas.findByRole("dialog", {
+      name: "Upper confirmation",
+    });
+    const confirm = within(upper).getByRole("button", { name: "Confirm" });
+    await expect(confirm).toHaveFocus();
+    await userEvent.keyboard("{Delete}");
+    await waitFor(() =>
+      expect(
+        canvas.queryByRole("dialog", { name: "Lower confirmation" }),
+      ).not.toBeInTheDocument(),
+    );
+    await expect(confirm).toHaveFocus();
+    await userEvent.tab();
+    await expect(
+      within(upper).getByRole("button", { name: "Dismiss" }),
+    ).toHaveFocus();
+    await userEvent.tab();
+    await expect(
+      within(upper).getByRole("button", { name: "Cancel" }),
+    ).toHaveFocus();
+    await userEvent.keyboard("{Escape}");
+    await waitFor(() => expect(upper).not.toBeInTheDocument());
+    await expect(opener).toHaveFocus();
+    await expect(canvas.getByRole("status")).toHaveTextContent("dismiss");
+  },
+};
+
+export const DelayedStackedFocus: Story = {
+  ...StackedFocus,
+  render: () => <ConfirmStackDemo closeDelayMs={150} />,
+};
+
+export const DelayedStackedFocusInteraction: Story = {
+  ...DelayedStackedFocus,
+  tags: ["!dev", "!autodocs"],
+  play: StackedFocusInteraction.play,
 };

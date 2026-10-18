@@ -47,6 +47,84 @@ describe("ModalProvider", () => {
     vi.useRealTimers();
   });
 
+  it("should preserve stack focus through delayed dismissal and provider teardown", async () => {
+    vi.useFakeTimers();
+    const registry = createModalRegistry({});
+    const opener = document.createElement("button");
+    document.body.append(opener);
+    opener.focus();
+    const { unmount } = render(
+      <ModalProvider registry={registry} closeDelayMs={100}>
+        <span>Scope</span>
+      </ModalProvider>,
+    );
+    let lower: Optional<ModalHandle<unknown>>;
+    let upper: Optional<ModalHandle<unknown>>;
+    const lowerRejected = vi.fn();
+    const upperRejected = vi.fn();
+    act(() => {
+      lower = registry.confirm({ title: "Lower" });
+      void lower.catch(lowerRejected);
+    });
+    act(() => {
+      upper = registry.confirm({ title: "Upper", confirmText: "Upper action" });
+      void upper.catch(upperRejected);
+    });
+    const upperAction = screen.getByRole("button", { name: "Upper action" });
+    act(() => lower?.dismiss());
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(lowerRejected).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("dialog", { name: "Lower" })).toBeInTheDocument();
+    expect(upperAction).toHaveFocus();
+    act(() => {
+      vi.advanceTimersByTime(100);
+    });
+    expect(
+      screen.queryByRole("dialog", { name: "Lower" }),
+    ).not.toBeInTheDocument();
+    expect(upperAction).toHaveFocus();
+    unmount();
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(upperRejected).toHaveBeenCalledTimes(1);
+    expect(opener).toHaveFocus();
+    act(() => {
+      vi.runAllTimers();
+    });
+    expect(lowerRejected).toHaveBeenCalledTimes(1);
+    expect(upperRejected).toHaveBeenCalledTimes(1);
+    opener.remove();
+  });
+
+  it("should restore the outside opener when an entire confirmation stack unmounts", async () => {
+    const registry = createModalRegistry({});
+    const opener = document.createElement("button");
+    document.body.append(opener);
+    opener.focus();
+    const { unmount } = render(
+      <ModalProvider registry={registry}>
+        <span>Scope</span>
+      </ModalProvider>,
+    );
+    const rejected = vi.fn();
+    act(() => {
+      void registry.confirm({ title: "Lower" }).catch(rejected);
+    });
+    act(() => {
+      void registry.confirm({ title: "Upper" }).catch(rejected);
+    });
+    unmount();
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(rejected).toHaveBeenCalledTimes(2);
+    expect(opener).toHaveFocus();
+    opener.remove();
+  });
+
   it("should open a typed modal and resolve its result", async () => {
     render(
       <ModalProvider>
@@ -920,7 +998,9 @@ describe("ModalProvider", () => {
 
       expect(first.instanceId).toBe(second.instanceId);
 
-      act(() => first.dismiss());
+      act(() => {
+        first.dismiss();
+      });
 
       await dismissed;
 

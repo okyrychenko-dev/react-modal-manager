@@ -1,9 +1,10 @@
 import {
+  assertDefined,
   isDefined,
-  isInstanceOf,
   isNonEmptyArray,
 } from "@okyrychenko-dev/type-utils";
 import { useEffect, useId, useRef } from "react";
+import { registerConfirmFocus } from "./confirmFocus.utils";
 import {
   DEFAULT_CANCEL_TEXT,
   DEFAULT_CONFIRM_TEXT,
@@ -34,7 +35,14 @@ export function ConfirmModal(
   const confirmButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    const previouslyFocused = document.activeElement;
+    const dialog = dialogRef.current;
+
+    assertDefined(
+      dialog,
+      "Confirmation dialog must be mounted before its effect",
+    );
+
+    const releaseFocus = registerConfirmFocus(dialog);
 
     // Destructive confirms focus the safe action so an accidental Enter does not confirm.
     let initialFocusRef = confirmButtonRef;
@@ -45,11 +53,7 @@ export function ConfirmModal(
 
     initialFocusRef.current?.focus();
 
-    return () => {
-      if (isInstanceOf(previouslyFocused, HTMLElement)) {
-        previouslyFocused.focus();
-      }
-    };
+    return releaseFocus;
   }, [variant]);
 
   const handleCancel = (): void => {

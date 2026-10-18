@@ -6,6 +6,7 @@ import {
 } from "@okyrychenko-dev/react-modal-manager";
 import { isError, isInstanceOf } from "@okyrychenko-dev/type-utils";
 import { useEffect, useRef } from "react";
+import { confirmation } from "./confirmation.constants";
 import type {
   ConfirmModalResult,
   ModalHandle,
@@ -37,7 +38,7 @@ export function ConfirmationLauncher(
   }, []);
 
   function handleOpenConfirmation(): void {
-    const handle = manager.confirm({
+    const handle = manager.open(confirmation, {
       title: "Delete report?",
       description: (
         <>

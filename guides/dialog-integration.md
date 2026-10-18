@@ -241,3 +241,14 @@ const confirmModal = createModal({ id: "confirm", component: MyConfirm });
 
 <ModalProvider confirmModal={confirmModal}>{children}</ModalProvider>;
 ```
+
+## Complete flows and render recovery
+
+The [runnable Next.js example](../examples/nextjs-dialog/README.md#sequential-customer-workflow)
+includes typed customer selection, editing and confirmation, cancellation, launcher
+cleanup and a bounded delayed-exit visual. Its
+[local error-boundary recipe](../examples/nextjs-dialog/README.md#local-render-error-recovery)
+shows fallback UI and explicitly dismisses the failed operation while preserving
+an unrelated pending dialog. A boundary that only hides failed content does not
+settle its modal handle. Unmounting the Provider dismisses all its pending operations
+with `provider-unmount`; local recovery must arrange its own settlement.

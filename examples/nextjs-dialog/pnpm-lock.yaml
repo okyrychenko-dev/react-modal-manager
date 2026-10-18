@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@okyrychenko-dev/react-modal-manager':
-        specifier: file:./react-modal-manager.tgz
-        version: file:react-modal-manager.tgz(react@19.3.1)
+        specifier: 0.2.0
+        version: 0.2.0(react@19.3.1)
       '@okyrychenko-dev/type-utils':
         specifier: 0.1.2
         version: 0.1.2
@@ -262,9 +262,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@okyrychenko-dev/react-modal-manager@file:react-modal-manager.tgz':
-    resolution: {integrity: sha512-080qzZgwGm8RyoG7jbtpN4WfDbyKeKRuHEbHpqy4b7LaJZG3lSn3RKPvbnBy5sWaXKiqnXOPFHy/Y6NVCtTcFA==, tarball: file:react-modal-manager.tgz}
-    version: 0.2.0
+  '@okyrychenko-dev/react-modal-manager@0.2.0':
+    resolution: {integrity: sha512-Fq+r9p8IVtabDrrdWlaX0LPu3Q7xaA1FxD3We/txnmIslJZjmgOng8I0afzKSJ7Rk3azu2fyoTi1A8MbPNPSyA==}
     peerDependencies:
       react: ^18.0.0 || ^19.0.0
 
@@ -754,7 +753,7 @@ snapshots:
   '@next/swc-win32-x64-msvc@16.4.2':
     optional: true
 
-  '@okyrychenko-dev/react-modal-manager@file:react-modal-manager.tgz(react@19.3.1)':
+  '@okyrychenko-dev/react-modal-manager@0.2.0(react@19.3.1)':
     dependencies:
       '@okyrychenko-dev/type-utils': 0.1.2
       react: 19.3.1

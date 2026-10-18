@@ -7,5 +7,9 @@
     },
     "rootDir": "."
   },
-  "include": ["examples/**/*.typecheck.ts", "examples/**/*.typecheck.tsx"]
+  "include": [
+    "examples/**/*.typecheck.ts",
+    "examples/**/*.typecheck.tsx",
+    "examples/**/*.test.tsx"
+  ]
 }

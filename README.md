@@ -9,16 +9,17 @@
 `react-modal-manager` turns modal flows into typed promises. You `open()` a modal, `await` it, and TypeScript infers both the **input** you pass in and the **result** you get back — no `Promise<any>`, no global singleton, no design system lock-in.
 
 ```tsx
-import { ModalProvider, useModalManager } from "@okyrychenko-dev/react-modal-manager";
+import { ModalDismissError, ModalProvider, useModalManager } from "@okyrychenko-dev/react-modal-manager";
 
 function DeleteButton() {
   const modal = useModalManager();
 
   async function handleClick() {
-    const result = await modal.confirm({ title: "Delete report?", variant: "danger" });
-
-    if (result.confirmed) {
-      await deleteReport();
+    try {
+      const result = await modal.confirm({ title: "Delete report?", variant: "danger" });
+      if (result.confirmed) await deleteReport();
+    } catch (error) {
+      if (!(error instanceof ModalDismissError)) console.error(error);
     }
   }
 
@@ -76,7 +77,7 @@ The package also installs its small runtime guard dependency automatically; Reac
 Wrap the part of your app that can open modals with `ModalProvider`, then call `useModalManager()` from any descendant.
 
 ```tsx
-import { ModalProvider, useModalManager } from "@okyrychenko-dev/react-modal-manager";
+import { ModalDismissError, ModalProvider, useModalManager } from "@okyrychenko-dev/react-modal-manager";
 
 function App() {
   return (
@@ -90,16 +91,17 @@ function ReportsPage() {
   const modal = useModalManager();
 
   async function handleDelete() {
-    const result = await modal.confirm({
-      title: "Delete report?",
-      description: "This action cannot be undone.",
-      confirmText: "Delete",
-      cancelText: "Cancel",
-      variant: "danger",
-    });
-
-    if (result.confirmed) {
-      await deleteReport();
+    try {
+      const result = await modal.confirm({
+        title: "Delete report?",
+        description: "This action cannot be undone.",
+        confirmText: "Delete",
+        cancelText: "Cancel",
+        variant: "danger",
+      });
+      if (result.confirmed) await deleteReport();
+    } catch (error) {
+      if (!(error instanceof ModalDismissError)) console.error(error);
     }
   }
 
@@ -120,6 +122,16 @@ Start with the smallest API that solves the current problem, then add the next c
 7. Follow the [Next.js App Router guidance](#nextjs-app-router-ssr) for SSR and React Server Components.
 
 The complete path is compile-checked as a package consumer in [`examples/adoption-paths.typecheck.tsx`](examples/adoption-paths.typecheck.tsx). The client boundary used by a server layout is checked separately in [`examples/next-app-router-provider.typecheck.tsx`](examples/next-app-router-provider.typecheck.tsx). Interactive equivalents live in Storybook under `Components/ConfirmModal`, `Context/ModalProvider`, and `Components/ModalViewport`.
+
+Event handlers above consume expected `ModalDismissError` and report unexpected failures with `console.error`; replace that reporting with your application's non-throwing error reporter. Helpers that return a promise (such as command handlers below) propagate failures to their caller. At a detached boundary, attach a terminal handler to **each derived chain**:
+
+```tsx
+void renameFromAction("report-1", "Draft").catch((error: unknown) => {
+  if (!(error instanceof ModalDismissError)) console.error(error);
+});
+```
+
+Catching the original handle does not catch errors in a separate `handle.then(...)` or `handle.finally(...)` chain. Bare `await` fragments below belong inside an awaited function with caller-side rejection handling.
 
 ## Type Safety
 
@@ -329,7 +341,7 @@ function RenameLauncher() {
       }
     } catch (error) {
       if (!(error instanceof ModalDismissError)) {
-        throw error;
+        console.error(error);
       }
     } finally {
       pending.current.delete(handle);
@@ -411,21 +423,56 @@ function App() {
 }
 ```
 
+### Rendering placement and React context
+
+`ModalProvider` automatically renders one `ModalViewport` after its children. Do not add another viewport inside the provider: it renders the same instances again. The exported `ModalViewport` remains available, but adding one does not switch the provider into a manual mode. Use `renderer` for a shell or portal.
+
+Modal content receives React contexts at that viewport's rendering location. A context provider nested around the launch button is a sibling of the automatic viewport and does not automatically reach the modal. A portal preserves the renderer's React context; its DOM destination does not capture the launcher's context.
+
+Choose the placement that matches ownership:
+
+```tsx
+// Shared context: both the launcher and modal content see the workspace.
+<WorkspaceContext.Provider value={workspace}>
+  <ModalProvider><ReportsPage /></ModalProvider>
+</WorkspaceContext.Provider>;
+
+// Local scope: put the modal provider inside the context it needs.
+<WorkspaceContext.Provider value={workspace}>
+  <ModalProvider registry={workspaceModals}><Workspace /></ModalProvider>
+</WorkspaceContext.Provider>;
+
+// Launcher-only data: pass it through the modal's typed input.
+const handle = modal.open(renameReportModal, {
+  reportId: report.id,
+  currentName: report.name,
+});
+void handle.catch((error: unknown) => {
+  if (!(error instanceof ModalDismissError)) console.error(error);
+});
+```
+
+The context/input behavior and single automatic rendering path are exercised in [`examples/adoption-paths.test.tsx`](examples/adoption-paths.test.tsx), using the compile-checked [`context modal`](examples/rendering-context.typecheck.tsx).
+
+Instance IDs are **lifecycle-local**, not globally unique. Different providers can both have an instance named `modal-0`. `registry.dismiss(id)` targets the provider currently selected by that registry, even if the ID originally came from another provider. Keep the returned `open()` or `confirm()` handle and call `handle.dismiss()` for deferred owner-specific cancellation. A globally unique ID would not change registry routing.
+
 ## Confirmation Modals
 
 `modal.confirm()` (and `registry.confirm()`) opens the built-in confirmation modal and normally resolves to a typed, discriminated-union result. The Confirm button returns `{ confirmed: true }`; Cancel returns `{ confirmed: false, reason: "cancel" }`; Escape and the built-in Dismiss button return `{ confirmed: false, reason: "dismiss" }` when dismissal is allowed. These UI actions call `close(result)`, not the lifecycle `dismiss()`. Programmatic dismissal, `closeAll()`, and provider unmount still reject with `ModalDismissError`.
 
 ```tsx
-const result = await modal.confirm({
-  title: "Discard changes?",
-  description: "Your edits will be lost.",
-  variant: "warning",
-});
-
-if (result.confirmed) {
-  discard();
-} else {
-  // result.reason is "cancel" | "dismiss"
+try {
+  const handle = modal.confirm({
+    title: "Discard changes?",
+    description: "Your edits will be lost.",
+    variant: "warning",
+  });
+  // Keep handle.dismiss for later owner-specific cancellation if needed.
+  const result = await handle;
+  if (result.confirmed) discard();
+  // Otherwise result.reason is "cancel" | "dismiss".
+} catch (error) {
+  if (!(error instanceof ModalDismissError)) console.error(error);
 }
 ```
 
@@ -662,7 +709,7 @@ Type exports:
 
 ### `<ModalProvider>`
 
-Creates an isolated modal manager for a React subtree and renders active modals.
+Creates an isolated modal manager for a React subtree and automatically renders active modals through its viewport.
 
 **Props:**
 
@@ -679,7 +726,7 @@ Returns the modal manager from the nearest `ModalProvider`.
 **Returns:**
 
 - `open(modal, ...args: ModalOpenArgs<TInput>): ModalHandle<TResult>`
-- `confirm(params): Promise<ConfirmModalResult>`
+- `confirm(params): ModalHandle<ConfirmModalResult>`
 - `dismiss(instanceId, reason?): void`
 - `closeAll(reason?): void`
 
@@ -701,7 +748,7 @@ Creates a typed registry for opening modals by key. Bind it directly with `<Moda
 **Returns:**
 
 - `open(key, ...args: ModalOpenArgs<TInput>): ModalHandle<TResult>` — input is optional only when the registered modal uses `void` or `undefined`
-- `confirm(params): Promise<ConfirmModalResult>`
+- `confirm(params): ModalHandle<ConfirmModalResult>`
 - `dismiss(instanceId, reason?): void`
 - `closeAll(reason?): void`
 - `isReady(): boolean`

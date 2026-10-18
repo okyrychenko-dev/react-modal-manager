@@ -73,7 +73,7 @@ Creates a typed modal definition.
 
 **Options:**
 
-- `id?: string` — Optional stable modal definition id. A unique definition id is generated when omitted
+- `id?: string` — Optional stable modal definition id. When omitted, an ID is generated without requiring `crypto` or `randomUUID`. Generated IDs are distinct within one loaded module runtime and remain stable across opens of that definition. They are not security tokens or cross-process identifiers. Explicit IDs are preserved; choose them separately from generated IDs. Definition IDs do not make provider-local instance IDs globally routable.
 - `component: ModalComponent<TInput, TResult>` — React component that receives typed input and completion callbacks
 
 For a modal declared with `TInput = void` (or `undefined`), omit the input argument: `modal.open(infoModal)`. Modals with any other input type still require it.

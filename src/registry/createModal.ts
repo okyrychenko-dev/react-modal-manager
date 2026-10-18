@@ -1,18 +1,24 @@
+import { isUndefined } from "@okyrychenko-dev/type-utils";
 import type {
   ModalOptions,
   RegisteredModalDefinition,
 } from "./createModal.types";
 
-function createGeneratedModalId(): string {
-  return `modal-definition-${crypto.randomUUID()}`;
-}
+let nextDefinitionId = 0;
 
 export function createModal<TInput, TResult>(
   options: ModalOptions<TInput, TResult>,
 ): RegisteredModalDefinition<TInput, TResult> {
+  let { id } = options;
+
+  if (isUndefined(id)) {
+    nextDefinitionId += 1;
+    id = `modal-definition-${String(nextDefinitionId)}`;
+  }
+
   const definition = {
     ...options,
-    id: options.id ?? createGeneratedModalId(),
+    id,
   };
 
   return {

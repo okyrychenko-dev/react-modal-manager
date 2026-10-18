@@ -2,6 +2,7 @@ import { assertDefined } from "@okyrychenko-dev/type-utils";
 import { act, render, screen, within } from "@testing-library/react";
 import { describe, expect, expectTypeOf, it } from "vitest";
 import { assertTypeUtilsAssertion } from "../../test/assertTypeUtilsAssertion";
+import { createModal } from "../createModal";
 import { createModalRegistry } from "../createModalRegistry";
 import {
   RegistryProviders,
@@ -22,6 +23,29 @@ function dismissHandle<TResult>(handle: Optional<ModalHandle<TResult>>): void {
 }
 
 describe("createModalRegistry", () => {
+  it("should retain a generated definition identity across registry opens", () => {
+    const definition = createModal({ component: registryTestModal.component });
+    const originalId = definition.id;
+    const registry = createModalRegistry({ test: definition });
+
+    render(
+      <RegistryProviders registry={registry} showFirst showSecond={false} />,
+    );
+
+    for (const label of ["First opening", "Second opening"]) {
+      let handle: Optional<ModalHandle<RegistryTestResult>>;
+
+      act(() => {
+        handle = registry.open("test", { label });
+      });
+
+      expect(screen.getByRole("dialog", { name: label })).toBeInTheDocument();
+      expect(definition.id).toBe(originalId);
+
+      dismissHandle(handle);
+    }
+  });
+
   it("should preserve key, input, result, and handle inference", () => {
     const registry = createModalRegistry({ test: registryTestModal });
 

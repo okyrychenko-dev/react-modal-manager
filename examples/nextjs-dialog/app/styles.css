@@ -45,3 +45,27 @@ button:focus-visible {
   gap: 0.75rem;
   margin-block: 1rem;
 }
+
+label {
+  display: block;
+  margin-block: 1rem;
+}
+
+.closing-visual {
+  pointer-events: none;
+  animation: depart 600ms ease-out forwards;
+}
+
+@keyframes depart {
+  to {
+    opacity: 0;
+    transform: translate(-50%, -45%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .closing-visual {
+    animation: none;
+    visibility: hidden;
+  }
+}

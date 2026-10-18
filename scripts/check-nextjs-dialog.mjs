@@ -1,13 +1,6 @@
 import { execFileSync, spawn } from "node:child_process";
-import { createHash } from "node:crypto";
 import { once } from "node:events";
-import {
-  cpSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { cpSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
@@ -21,11 +14,19 @@ import {
 } from "@okyrychenko-dev/type-utils";
 import { chromium } from "playwright";
 import {
+  verifyCustomerCancellation,
+  verifyCustomerFlow,
+  verifyDelayedCustomerFlow,
+} from "./__tests__/nextjs-dialog-flow.test.mjs";
+import {
   expectDialogOutcome,
   verifyUnavailableOpenerFallback,
 } from "./__tests__/nextjs-dialog-focus.test.mjs";
+import { verifyRenderRecovery } from "./__tests__/nextjs-dialog-recovery.test.mjs";
+import { configurePackedModalPackage } from "./nextjs-dialog-package.utils.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
+const published = process.argv.includes("--published");
 const temporary = mkdtempSync(join(tmpdir(), "modal-nextjs-"));
 const app = join(temporary, "app");
 let server;
@@ -85,24 +86,11 @@ try {
         "react-modal-manager.tgz",
       ]),
   });
-  run(["run", "build"], root);
-  run(["pack", "--out", join(app, "react-modal-manager.tgz")], root);
-  // Only the artifact under test changes; preserve every external lockfile entry.
-  const lockPath = join(app, "pnpm-lock.yaml");
-  const lock = readFileSync(lockPath, "utf8");
-  const checksum = createHash("sha512")
-    .update(readFileSync(join(app, "react-modal-manager.tgz")))
-    .digest("base64");
-  const artifactResolution =
-    /integrity: sha512-[A-Za-z0-9+/=]+(?=,\s+tarball: file:react-modal-manager\.tgz)/gu;
-  assertTrue(
-    [...lock.matchAll(artifactResolution)].length === 1,
-    "Expected exactly one local artifact in fixture lockfile",
-  );
-  writeFileSync(
-    lockPath,
-    lock.replace(artifactResolution, `integrity: sha512-${checksum}`),
-  );
+  if (!published) {
+    run(["run", "build"], root);
+    run(["pack", "--out", join(app, "react-modal-manager.tgz")], root);
+    configurePackedModalPackage(app, root);
+  }
   run(["install", "--frozen-lockfile"]);
   run(["run", "typecheck"]);
   run(["run", "build"]);
@@ -139,9 +127,21 @@ try {
   );
   browser = await chromium.launch();
   const page = await browser.newPage();
+  let expectedRenderErrors = 0;
+  let verifyingRecovery = false;
   page.on("pageerror", (error) => failures.push(error.message));
   page.on("console", (message) => {
-    if (message.type() === "error" || message.type() === "warning") {
+    if (isOneOf(message.type(), ["error", "warning"])) {
+      if (
+        message.type() === "error" &&
+        verifyingRecovery &&
+        message.text().split("\n")[0] ===
+          "Error: Intentional customer render failure (recovery demo)" &&
+        expectedRenderErrors < 2
+      ) {
+        expectedRenderErrors += 1;
+        return;
+      }
       failures.push(`Browser ${message.type()}: ${message.text()}`);
     }
   });
@@ -215,10 +215,21 @@ try {
   await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
   await expectDialogOutcome(page, "Cancelled: cancel", open);
   await verifyUnavailableOpenerFallback(page);
+  await verifyCustomerFlow(page);
+  await verifyCustomerCancellation(page);
+  await verifyDelayedCustomerFlow(page);
+  verifyingRecovery = true;
+  await verifyRenderRecovery(page);
+  verifyingRecovery = false;
+  assertTrue(
+    expectedRenderErrors === 2,
+    "Expected exactly two intentional render-error reports",
+  );
   await page.close();
   assertTrue(failures.length === 0, failures.join("\n"));
   const manifest = JSON.parse(readFileSync(join(app, "package.json"), "utf8"));
-  console.log("Packed Next.js / Radix smoke passed", {
+  const source = published ? "Published" : "Packed";
+  console.log(`${source} Next.js / Radix smoke passed`, {
     node: process.version,
     ...manifest.dependencies,
   });

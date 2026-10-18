@@ -183,6 +183,12 @@ try {
     symlinkSync(target, link, "dir");
   }
   execFileSync("node", [join(consumerRoot, "esm.mjs")], { stdio: "inherit" });
+  const identityConsumer = join(consumerRoot, "definition-identity.mjs");
+  cpSync(
+    join(repositoryPath, "tests/consumers/package/definition-identity.mjs"),
+    identityConsumer,
+  );
+  execFileSync("node", [identityConsumer], { stdio: "inherit" });
   execFileSync("node", [join(consumerRoot, "cjs.cjs")], { stdio: "inherit" });
 
   execFileSync(

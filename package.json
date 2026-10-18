@@ -31,7 +31,7 @@
     "benchmark:lifecycle": "pnpm run build && NODE_ENV=production node scripts/benchmark-lifecycle.mjs",
     "competitive:check": "node scripts/check-competitive-package.mjs",
     "package:check": "node scripts/check-packed-package.mjs && attw --pack . && publint",
-    "release:check": "pnpm run check && pnpm run test:storybook && pnpm run build-storybook && pnpm run package:check",
+    "release:check": "pnpm run check && pnpm run test:storybook && pnpm run build-storybook && pnpm run package:check && pnpm run test:nextjs",
     "dev": "tsup --watch",
     "clean": "rm -rf dist",
     "prepublishOnly": "pnpm run clean && pnpm run build",

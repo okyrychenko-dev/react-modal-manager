@@ -110,6 +110,49 @@ describe("ConfirmModal a11y", () => {
     lower.unmount();
   });
 
+  it("should preserve focus moved outside before the active confirmation closes", () => {
+    render(<button type="button">Outside action</button>);
+
+    const { unmount } = renderConfirmModal({ title: "Delete?" });
+    const outside = screen.getByRole("button", { name: "Outside action" });
+
+    outside.focus();
+    unmount();
+
+    expect(outside).toHaveFocus();
+  });
+
+  it("should restore focus inside the remaining confirmation instead of an outside opener", () => {
+    render(<button type="button">Outside action</button>);
+    const lower = renderConfirmModal({
+      title: "Lower",
+      cancelText: "Keep lower",
+    });
+    screen.getByRole("button", { name: "Outside action" }).focus();
+    const upper = renderConfirmModal({ title: "Upper" });
+
+    upper.unmount();
+
+    expect(screen.getByRole("button", { name: "Keep lower" })).toHaveFocus();
+
+    lower.unmount();
+  });
+
+  it("should leave Tab unhandled when all confirmation controls are disabled", () => {
+    renderConfirmModal({ title: "Unavailable actions" });
+
+    const dialog = screen.getByRole("dialog", { name: "Unavailable actions" });
+
+    for (const button of screen.getAllByRole("button")) {
+      button.setAttribute("disabled", "");
+    }
+
+    expect(fireEvent.keyDown(dialog, { key: "Tab" })).toBe(true);
+    expect(fireEvent.keyDown(dialog, { key: "Tab", shiftKey: true })).toBe(
+      true,
+    );
+  });
+
   it("should tolerate a previously focused non-HTML element", () => {
     const previouslyFocused = document.createElementNS(
       "http://www.w3.org/2000/svg",

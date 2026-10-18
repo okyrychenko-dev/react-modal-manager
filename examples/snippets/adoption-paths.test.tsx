@@ -1,9 +1,8 @@
-import { assertDefined } from "@okyrychenko-dev/type-utils";
 import {
   ModalProvider,
   createModalRegistry,
 } from "@okyrychenko-dev/react-modal-manager";
-import type { Optional } from "@okyrychenko-dev/type-utils";
+import { assertDefined } from "@okyrychenko-dev/type-utils";
 import {
   act,
   fireEvent,
@@ -14,14 +13,15 @@ import {
 } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
-  ContextReportModal,
-  ReportContext,
-} from "./rendering-context.typecheck";
-import {
   AdoptionPathsExample,
   ReportsPage,
   reportModals,
 } from "./adoption-paths.typecheck";
+import {
+  ContextReportModal,
+  ReportContext,
+} from "./rendering-context.typecheck";
+import type { Optional } from "@okyrychenko-dev/type-utils";
 
 describe("adoption paths", () => {
   afterEach(() => {
@@ -66,6 +66,7 @@ describe("adoption paths", () => {
     await waitFor(() =>
       expect(window.localStorage.getItem("last-delete-outcome")).toBe("cancel"),
     );
+
     fireEvent.click(
       screen.getAllByRole("button", { name: "Rename report" })[0],
     );

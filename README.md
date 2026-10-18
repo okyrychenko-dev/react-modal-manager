@@ -121,7 +121,7 @@ Start with the smallest API that solves the current problem, then add the next c
 6. Split independent application areas into [provider scopes](#provider-scope).
 7. Follow the [Next.js App Router guidance](#nextjs-app-router-ssr) for SSR and React Server Components.
 
-The complete path is compile-checked as a package consumer in [`examples/adoption-paths.typecheck.tsx`](examples/adoption-paths.typecheck.tsx). The client boundary used by a server layout is checked separately in [`examples/next-app-router-provider.typecheck.tsx`](examples/next-app-router-provider.typecheck.tsx). Interactive equivalents live in Storybook under `Components/ConfirmModal`, `Context/ModalProvider`, and `Components/ModalViewport`.
+The complete path is compile-checked as a package consumer in [`examples/snippets/adoption-paths.typecheck.tsx`](examples/snippets/adoption-paths.typecheck.tsx). The client boundary used by a server layout is checked separately in [`examples/snippets/next-app-router-provider.typecheck.tsx`](examples/snippets/next-app-router-provider.typecheck.tsx). Interactive equivalents live in Storybook under `Components/ConfirmModal`, `Context/ModalProvider`, and `Components/ModalViewport`.
 
 Event handlers above consume expected `ModalDismissError` and report unexpected failures with `console.error`; replace that reporting with your application's non-throwing error reporter. Helpers that return a promise (such as command handlers below) propagate failures to their caller. At a detached boundary, attach a terminal handler to **each derived chain**:
 
@@ -452,7 +452,7 @@ void handle.catch((error: unknown) => {
 });
 ```
 
-The context/input behavior and single automatic rendering path are exercised in [`examples/adoption-paths.test.tsx`](examples/adoption-paths.test.tsx), using the compile-checked [`context modal`](examples/rendering-context.typecheck.tsx).
+The context/input behavior and single automatic rendering path are exercised in [`examples/snippets/adoption-paths.test.tsx`](examples/snippets/adoption-paths.test.tsx), using the compile-checked [`context modal`](examples/snippets/rendering-context.typecheck.tsx).
 
 Instance IDs are **lifecycle-local**, not globally unique. Different providers can both have an instance named `modal-0`. `registry.dismiss(id)` targets the provider currently selected by that registry, even if the ID originally came from another provider. Keep the returned `open()` or `confirm()` handle and call `handle.dismiss()` for deferred owner-specific cancellation. A globally unique ID would not change registry routing.
 
@@ -840,11 +840,11 @@ Revalidated **2026-09-13** for this package's **0.2.0** release line (through `3
 
 | Area | `react-modal-manager` | `nice-modal-react` | Evidence kind |
 | --- | --- | --- | --- |
-| Input and result typing | A definition or registry key couples input to `Promise<TResult>` | Component props are inferred; `show()` result is caller-selected and handlers expose `Promise<unknown>` | Verified declarations: [local packed-consumer fixture](scripts/package-consumer.typecheck.ts), [Nice Modal 1.2.13 declarations](https://unpkg.com/@ebay/nice-modal-react@1.2.13/lib/esm/index.d.ts) |
+| Input and result typing | A definition or registry key couples input to `Promise<TResult>` | Component props are inferred; `show()` result is caller-selected and handlers expose `Promise<unknown>` | Verified declarations: [local packed-consumer fixture](tests/consumers/package/package-consumer.typecheck.ts), [Nice Modal 1.2.13 declarations](https://unpkg.com/@ebay/nice-modal-react@1.2.13/lib/esm/index.d.ts) |
 | Lifecycle correctness | Per-instance handles; resolve, reject, and dismiss settle once; optional closing phase precedes removal | Promise-based `show`; separate `hide` and `remove`; UI-library helpers connect removal to exit callbacks | Verified local behavior: [lifecycle tests](src/lifecycle/__tests__/modalLifecycle.test.ts); documented competitor behavior: [Nice Modal usage and helpers](https://github.com/eBay/nice-modal-react/tree/1.2.13#usage) |
 | Provider isolation | Nested, adjacent, and independent roots own isolated lifecycle state | Each provider creates reducer state, while imperative dispatch, registrations, and promise callbacks are module-level | Verified local behavior: [root tests](src/provider/__tests__/ModalProvider.roots.test.tsx); competitor architecture: [1.2.13 source](https://github.com/eBay/nice-modal-react/blob/1.2.13/src/index.tsx) |
 | React compatibility | Declares React 18 and 19 and runs the same root/Strict Mode suite against both | Declares React and React DOM `>16.8.0`; the published package was developed with React 17 | Verified local matrix: [CI](.github/workflows/ci.yml); published competitor metadata: [package manifest](https://unpkg.com/@ebay/nice-modal-react@1.2.13/package.json) |
-| SSR and RSC | Provider server rendering, separate-request isolation, and hydration are tested; RSC usage has a compiled Client Component example | No SSR, hydration, or React Server Components contract is documented in the 1.2.13 README | Verified local behavior: [SSR tests](src/provider/__tests__/ModalProvider.ssr.test.tsx) and [RSC-style fixture](examples/next-app-router-provider.typecheck.tsx); competitor documentation: [1.2.13 README](https://github.com/eBay/nice-modal-react/tree/1.2.13) |
+| SSR and RSC | Provider server rendering, separate-request isolation, and hydration are tested; RSC usage has a compiled Client Component example | No SSR, hydration, or React Server Components contract is documented in the 1.2.13 README | Verified local behavior: [SSR tests](src/provider/__tests__/ModalProvider.ssr.test.tsx) and [RSC-style fixture](examples/snippets/next-app-router-provider.typecheck.tsx); competitor documentation: [1.2.13 README](https://github.com/eBay/nice-modal-react/tree/1.2.13) |
 | Imperative access | A typed registry opens outside React after being bound to a provider; keys, input, and results are inferred | `NiceModal.show(component, props)` or a registered string id can be called directly after a provider establishes the module-level dispatch | Verified local behavior: [registry tests](src/registry/__tests__/createModalRegistry.test.tsx); documented competitor behavior: [component and id APIs](https://github.com/eBay/nice-modal-react/tree/1.2.13#using-your-modal-component) |
 | Rendering independence | Lifecycle renders modal definitions through a replaceable wrapper; no portal, overlay, CSS, or design-system dependency | Supplies no dialog markup and wraps consumer components; includes helpers for Ant Design, MUI, and React Bootstrap lifecycles | Public interfaces: [local renderer types](src/types/modal.ts), [Nice Modal helpers](https://unpkg.com/@ebay/nice-modal-react@1.2.13/lib/esm/index.d.ts) |
 | Accessibility composition | Built-in confirmation provides dialog semantics, initial focus, focus trapping, and safe destructive focus; custom modals/renderers remain consumer-owned | Accessibility belongs entirely to the consumer’s chosen modal component or UI library | Verified local behavior: [confirmation tests](src/confirm/__tests__/ConfirmModal.test.tsx); documented competitor scope: [“not a React modal component”](https://github.com/eBay/nice-modal-react/tree/1.2.13#nice-modal) |
@@ -857,9 +857,30 @@ The main trade-off is deliberate: this package does not provide unchecked `show(
 
 ## Development
 
+Library implementation and tests live in `src/`. Documentation snippets live in
+`examples/snippets/`, with their own TypeScript and Vitest configurations. They
+import the public package entry point and resolve its built `dist` exports without
+source aliases. `pnpm run check:examples` builds the library, type-checks the snippets
+and runs their behavior tests. The standalone `typecheck:examples` and
+`test:examples` commands also build first so they work from a clean checkout.
+
+Runnable example applications belong in `examples/<name>/`, each with its own
+private `package.json`, dependencies and application configuration. A local package
+dependency should resolve the library's public built exports. There are currently
+no standalone example applications; the App Router snippet only checks a client
+boundary and does not constitute a running Next.js integration.
+
+Packed-package consumer fixtures live in `tests/consumers/`. The existing
+`package:check` command packs the library and checks its ESM/CommonJS exports and
+declarations in a temporary consumer using
+`tests/consumers/package/package-consumer.typecheck.ts`. This checks the distributable
+artifact separately from source tests and documentation snippets.
+
+
 ```bash
 pnpm install --frozen-lockfile
 pnpm run typecheck
+pnpm run check:examples
 pnpm run lint
 pnpm run format:check
 pnpm run test:run

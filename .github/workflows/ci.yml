@@ -62,8 +62,8 @@ jobs:
       - name: Typecheck
         run: pnpm run typecheck
 
-      - name: Typecheck public examples
-        run: pnpm run typecheck:examples
+      - name: Verify public snippets against the built library
+        run: pnpm run check:examples
 
       - name: Lint
         run: pnpm run lint
@@ -73,9 +73,6 @@ jobs:
 
       - name: Test
         run: pnpm run test:coverage
-
-      - name: Build
-        run: pnpm run build
 
       - name: Verify packed package
         if: matrix.node == 22

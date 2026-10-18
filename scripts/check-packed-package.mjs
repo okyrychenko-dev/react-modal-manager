@@ -156,7 +156,10 @@ try {
     'const before = new Set(Reflect.ownKeys(globalThis));\nawait import("@okyrychenko-dev/react-modal-manager");\nconst added = Reflect.ownKeys(globalThis).filter((key) => !before.has(key));\nif (added.length > 0) throw new Error(`Package added globals: ${added.join(", ")}`);\n',
   );
   const typeConsumer = readFileSync(
-    join(repositoryPath, "scripts/package-consumer.typecheck.ts"),
+    join(
+      repositoryPath,
+      "tests/consumers/package/package-consumer.typecheck.ts",
+    ),
   );
   writeFileSync(join(consumerRoot, "consumer.mts"), typeConsumer);
   writeFileSync(join(consumerRoot, "consumer.cts"), typeConsumer);

@@ -1,11 +1,13 @@
 "use client";
 
 import {
+  ModalDismissError,
   ModalProvider,
   createModal,
   createModalRegistry,
   useModalManager,
 } from "@okyrychenko-dev/react-modal-manager";
+import { useEffect, useRef } from "react";
 import type {
   ModalComponentProps,
   ModalHandle,
@@ -37,11 +39,17 @@ function RenameReportModal({
 }: ModalComponentProps<RenameReportInput, RenameReportResult>): ReactNode {
   return (
     <section aria-label={`Rename ${input.currentName}`}>
-      <button onClick={() => close({ status: "cancelled" })}>Cancel</button>
       <button
-        onClick={() =>
-          close({ status: "renamed", name: `${input.currentName} updated` })
-        }
+        onClick={() => {
+          close({ status: "cancelled" });
+        }}
+      >
+        Cancel
+      </button>
+      <button
+        onClick={() => {
+          close({ status: "renamed", name: `${input.currentName} updated` });
+        }}
       >
         Rename
       </button>
@@ -61,18 +69,6 @@ const workspaceModals = createModalRegistry({
   renameReport: renameReportModal,
 });
 
-const openRenameHandles = new Map<string, ModalHandle<RenameReportResult>>();
-
-function trackRenameHandle(handle: ModalHandle<RenameReportResult>): void {
-  openRenameHandles.set(handle.instanceId, handle);
-
-  function stopTracking(): void {
-    openRenameHandles.delete(handle.instanceId);
-  }
-
-  void handle.then(stopTracking, stopTracking);
-}
-
 export async function renameReportFromCommand(
   input: RenameReportInput,
 ): Promise<RenameReportResult> {
@@ -87,8 +83,19 @@ function AppModalRenderer({ children, modal }: ModalRendererProps): ReactNode {
   );
 }
 
-function ReportsPage(): ReactNode {
+export function ReportsPage(): ReactNode {
   const modal = useModalManager();
+  const pending = useRef(new Set<ModalHandle<RenameReportResult>>());
+
+  useEffect(() => {
+    const handles = pending.current;
+    return () => {
+      for (const handle of handles) {
+        handle.dismiss();
+      }
+      handles.clear();
+    };
+  }, []);
 
   function handleDelete(): void {
     void modal
@@ -103,6 +110,11 @@ function ReportsPage(): ReactNode {
         } else {
           window.localStorage.setItem("last-delete-outcome", result.reason);
         }
+      })
+      .catch((error: unknown) => {
+        if (!(error instanceof ModalDismissError)) {
+          console.error(error);
+        }
       });
   }
 
@@ -112,13 +124,22 @@ function ReportsPage(): ReactNode {
       currentName: "Q3 report",
     });
 
-    trackRenameHandle(handle);
+    pending.current.add(handle);
 
-    void handle.then((result) => {
-      if (result.status === "renamed") {
-        window.localStorage.setItem("report-1-name", result.name);
-      }
-    });
+    void handle
+      .then((result) => {
+        if (result.status === "renamed") {
+          window.localStorage.setItem("report-1-name", result.name);
+        }
+      })
+      .catch((error: unknown) => {
+        if (!(error instanceof ModalDismissError)) {
+          console.error(error);
+        }
+      })
+      .finally(() => {
+        pending.current.delete(handle);
+      });
   }
 
   return (

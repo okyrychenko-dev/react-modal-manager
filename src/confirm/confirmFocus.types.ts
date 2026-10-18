@@ -1,4 +1,6 @@
+import type { Nullable } from "@okyrychenko-dev/type-utils";
+
 export interface ConfirmFocusEntry {
   dialog: HTMLElement;
-  opener: Element | null;
+  opener: Nullable<Element>;
 }

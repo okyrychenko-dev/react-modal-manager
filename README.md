@@ -9,17 +9,25 @@
 `react-modal-manager` turns modal flows into typed promises. You `open()` a modal, `await` it, and TypeScript infers both the **input** you pass in and the **result** you get back — no `Promise<any>`, no global singleton, no design system lock-in.
 
 ```tsx
-import { ModalDismissError, ModalProvider, useModalManager } from "@okyrychenko-dev/react-modal-manager";
+import { isInstanceOf } from "@okyrychenko-dev/type-utils";
+import {
+  ModalDismissError,
+  ModalProvider,
+  useModalManager,
+} from "@okyrychenko-dev/react-modal-manager";
 
 function DeleteButton() {
   const modal = useModalManager();
 
   async function handleClick() {
     try {
-      const result = await modal.confirm({ title: "Delete report?", variant: "danger" });
+      const result = await modal.confirm({
+        title: "Delete report?",
+        variant: "danger",
+      });
       if (result.confirmed) await deleteReport();
     } catch (error) {
-      if (!(error instanceof ModalDismissError)) console.error(error);
+      if (!isInstanceOf(error, ModalDismissError)) console.error(error);
     }
   }
 
@@ -57,11 +65,11 @@ const app = (
 ## Installation
 
 ```bash
-npm install @okyrychenko-dev/react-modal-manager
+npm install @okyrychenko-dev/react-modal-manager @okyrychenko-dev/type-utils
 # or
-yarn add @okyrychenko-dev/react-modal-manager
+yarn add @okyrychenko-dev/react-modal-manager @okyrychenko-dev/type-utils
 # or
-pnpm add @okyrychenko-dev/react-modal-manager
+pnpm add @okyrychenko-dev/react-modal-manager @okyrychenko-dev/type-utils
 ```
 
 Peer dependencies:
@@ -70,14 +78,19 @@ Peer dependencies:
 
 Modal lifecycle state is provider-owned and observed directly by React. There is no global lifecycle singleton.
 
-The package also installs its small runtime guard dependency automatically; React is the only peer dependency consumers provide.
+The package also installs its small runtime guard dependency automatically; React is the only peer dependency consumers provide. The examples import `isInstanceOf` directly, so the commands above declare `@okyrychenko-dev/type-utils` as an application dependency too.
 
 ## Quick Start
 
 Wrap the part of your app that can open modals with `ModalProvider`, then call `useModalManager()` from any descendant.
 
 ```tsx
-import { ModalDismissError, ModalProvider, useModalManager } from "@okyrychenko-dev/react-modal-manager";
+import { isInstanceOf } from "@okyrychenko-dev/type-utils";
+import {
+  ModalDismissError,
+  ModalProvider,
+  useModalManager,
+} from "@okyrychenko-dev/react-modal-manager";
 
 function App() {
   return (
@@ -101,7 +114,7 @@ function ReportsPage() {
       });
       if (result.confirmed) await deleteReport();
     } catch (error) {
-      if (!(error instanceof ModalDismissError)) console.error(error);
+      if (!isInstanceOf(error, ModalDismissError)) console.error(error);
     }
   }
 
@@ -126,8 +139,9 @@ The complete path is compile-checked as a package consumer in [`examples/snippet
 Event handlers above consume expected `ModalDismissError` and report unexpected failures with `console.error`; replace that reporting with your application's non-throwing error reporter. Helpers that return a promise (such as command handlers below) propagate failures to their caller. At a detached boundary, attach a terminal handler to **each derived chain**:
 
 ```tsx
+import { isInstanceOf } from "@okyrychenko-dev/type-utils";
 void renameFromAction("report-1", "Draft").catch((error: unknown) => {
-  if (!(error instanceof ModalDismissError)) console.error(error);
+  if (!isInstanceOf(error, ModalDismissError)) console.error(error);
 });
 ```
 
@@ -138,7 +152,10 @@ Catching the original handle does not catch errors in a separate `handle.then(..
 This is where the library earns its place. Define a modal once and every call site is checked end to end.
 
 ```tsx
-import { createModal, type ModalComponentProps } from "@okyrychenko-dev/react-modal-manager";
+import {
+  createModal,
+  type ModalComponentProps,
+} from "@okyrychenko-dev/react-modal-manager";
 
 interface RenameInput {
   reportId: string;
@@ -156,14 +173,20 @@ interface RenameCancelledResult {
 
 type RenameResult = RenameSucceededResult | RenameCancelledResult;
 
-function RenameModal({ close, input }: ModalComponentProps<RenameInput, RenameResult>) {
+function RenameModal({
+  close,
+  input,
+}: ModalComponentProps<RenameInput, RenameResult>) {
   // `input` is RenameInput. `close` only accepts a RenameResult.
 }
 
 const renameModal = createModal({ component: RenameModal });
 
 // At the call site, TypeScript infers everything:
-const result = await modal.open(renameModal, { reportId: "1", currentName: "Q3" });
+const result = await modal.open(renameModal, {
+  reportId: "1",
+  currentName: "Q3",
+});
 //    ^? RenameResult — discriminated union, narrowed by `result.status`
 //                       and `modal.open` rejects the wrong input shape at compile time.
 ```
@@ -178,8 +201,11 @@ const result = await modal.open(renameModal, { reportId: "1", currentName: "Q3" 
 Define a modal with explicit input and result types.
 
 ```tsx
-import { createModal, type ModalComponentProps } from "@okyrychenko-dev/react-modal-manager";
-import { useState } from "react";
+import {
+  createModal,
+  type ModalComponentProps,
+} from "@okyrychenko-dev/react-modal-manager";
+import { useState, type ChangeEvent } from "react";
 
 interface RenameReportInput {
   reportId: string;
@@ -205,17 +231,32 @@ function RenameReportModal({
 }: ModalComponentProps<RenameReportInput, RenameReportResult>) {
   const [name, setName] = useState(input.currentName);
 
+  function handleNameChange(event: ChangeEvent<HTMLInputElement>): void {
+    setName(event.target.value);
+  }
+
+  function handleCancel(): void {
+    close({ status: "cancelled" });
+  }
+
+  function handleRename(): void {
+    close({ status: "renamed", name });
+  }
+
   return (
     <dialog open>
       <h2>Rename report</h2>
-      <input value={name} onChange={(event) => setName(event.target.value)} />
-      <button onClick={() => close({ status: "cancelled" })}>Cancel</button>
-      <button onClick={() => close({ status: "renamed", name })}>Rename</button>
+      <input value={name} onChange={handleNameChange} />
+      <button onClick={handleCancel}>Cancel</button>
+      <button onClick={handleRename}>Rename</button>
     </dialog>
   );
 }
 
-export const renameReportModal = createModal<RenameReportInput, RenameReportResult>({
+export const renameReportModal = createModal<
+  RenameReportInput,
+  RenameReportResult
+>({
   component: RenameReportModal,
 });
 ```
@@ -236,9 +277,12 @@ if (result.status === "renamed") {
 `modal.open()` rejects with `ModalDismissError` when the modal is dismissed, `closeAll()` is called, or the provider unmounts while it is still pending. Handle that branch explicitly in the caller. TypeScript checks the resolved result but does not encode a promise's rejection type.
 
 ```tsx
+import { isInstanceOf } from "@okyrychenko-dev/type-utils";
 import { ModalDismissError } from "@okyrychenko-dev/react-modal-manager";
 
-async function renameReportWithModal(modal: ReturnType<typeof useModalManager>) {
+async function renameReportWithModal(
+  modal: ReturnType<typeof useModalManager>,
+) {
   try {
     const result = await modal.open(renameReportModal, {
       reportId: "report-1",
@@ -249,7 +293,7 @@ async function renameReportWithModal(modal: ReturnType<typeof useModalManager>) 
       await renameReport({ reportId: "report-1", name: result.name });
     }
   } catch (error) {
-    if (error instanceof ModalDismissError) {
+    if (isInstanceOf(error, ModalDismissError)) {
       return;
     }
     throw error;
@@ -260,6 +304,7 @@ async function renameReportWithModal(modal: ReturnType<typeof useModalManager>) 
 Keep the handle returned by `open()` when the caller needs to identify or dismiss the specific modal instance later:
 
 ```tsx
+import { isInstanceOf } from "@okyrychenko-dev/type-utils";
 const handle = modal.open(renameReportModal, {
   reportId: report.id,
   currentName: report.name,
@@ -271,7 +316,7 @@ try {
   const result = await handle;
   // Use result here if another action resolved the modal first.
 } catch (error) {
-  if (!(error instanceof ModalDismissError)) {
+  if (!isInstanceOf(error, ModalDismissError)) {
     throw error;
   }
 }
@@ -305,6 +350,7 @@ The promise settles **once**. The first `close(result)`, `reject(error)`, or `di
 A **calling component** unmounting does not automatically cancel a modal owned by a provider higher in the tree. The promise stays pending until that modal settles or its provider unmounts. If the caller owns the modal's lifetime, track every active handle and dismiss each in effect cleanup; also handle the resulting rejections:
 
 ```tsx
+import { isInstanceOf } from "@okyrychenko-dev/type-utils";
 import { useEffect, useRef } from "react";
 import {
   ModalDismissError,
@@ -340,7 +386,7 @@ function RenameLauncher() {
         await renameReport({ reportId: "report-1", name: result.name });
       }
     } catch (error) {
-      if (!(error instanceof ModalDismissError)) {
+      if (!isInstanceOf(error, ModalDismissError)) {
         console.error(error);
       }
     } finally {
@@ -362,7 +408,10 @@ Use `createModalRegistry()` when code needs to open modals by a stable key while
 
 ```tsx
 // modals.ts
-import { createModal, createModalRegistry } from "@okyrychenko-dev/react-modal-manager";
+import {
+  createModal,
+  createModalRegistry,
+} from "@okyrychenko-dev/react-modal-manager";
 import { RenameModal } from "./RenameModal";
 
 export const modals = createModalRegistry({
@@ -415,7 +464,10 @@ function App() {
       <ModalProvider registry={accountModals} renderer={AccountModalRenderer}>
         <AccountSettings />
       </ModalProvider>
-      <ModalProvider registry={workspaceModals} renderer={WorkspaceModalRenderer}>
+      <ModalProvider
+        registry={workspaceModals}
+        renderer={WorkspaceModalRenderer}
+      >
         <Workspace />
       </ModalProvider>
     </>
@@ -432,14 +484,19 @@ Modal content receives React contexts at that viewport's rendering location. A c
 Choose the placement that matches ownership:
 
 ```tsx
+import { isInstanceOf } from "@okyrychenko-dev/type-utils";
 // Shared context: both the launcher and modal content see the workspace.
 <WorkspaceContext.Provider value={workspace}>
-  <ModalProvider><ReportsPage /></ModalProvider>
+  <ModalProvider>
+    <ReportsPage />
+  </ModalProvider>
 </WorkspaceContext.Provider>;
 
 // Local scope: put the modal provider inside the context it needs.
 <WorkspaceContext.Provider value={workspace}>
-  <ModalProvider registry={workspaceModals}><Workspace /></ModalProvider>
+  <ModalProvider registry={workspaceModals}>
+    <Workspace />
+  </ModalProvider>
 </WorkspaceContext.Provider>;
 
 // Launcher-only data: pass it through the modal's typed input.
@@ -448,7 +505,7 @@ const handle = modal.open(renameReportModal, {
   currentName: report.name,
 });
 void handle.catch((error: unknown) => {
-  if (!(error instanceof ModalDismissError)) console.error(error);
+  if (!isInstanceOf(error, ModalDismissError)) console.error(error);
 });
 ```
 
@@ -461,6 +518,7 @@ Instance IDs are **lifecycle-local**, not globally unique. Different providers c
 `modal.confirm()` (and `registry.confirm()`) opens the built-in confirmation modal and normally resolves to a typed, discriminated-union result. The Confirm button returns `{ confirmed: true }`; Cancel returns `{ confirmed: false, reason: "cancel" }`; Escape and the built-in Dismiss button return `{ confirmed: false, reason: "dismiss" }` when dismissal is allowed. These UI actions call `close(result)`, not the lifecycle `dismiss()`. Programmatic dismissal, `closeAll()`, and provider unmount still reject with `ModalDismissError`.
 
 ```tsx
+import { isInstanceOf } from "@okyrychenko-dev/type-utils";
 try {
   const handle = modal.confirm({
     title: "Discard changes?",
@@ -472,7 +530,7 @@ try {
   if (result.confirmed) discard();
   // Otherwise result.reason is "cancel" | "dismiss".
 } catch (error) {
-  if (!(error instanceof ModalDismissError)) console.error(error);
+  if (!isInstanceOf(error, ModalDismissError)) console.error(error);
 }
 ```
 
@@ -496,7 +554,11 @@ import type { ModalRendererProps } from "@okyrychenko-dev/react-modal-manager";
 
 function AppModalRenderer({ children, modal }: ModalRendererProps) {
   return (
-    <div data-modal-id={modal.instanceId} data-status={modal.status} role="presentation">
+    <div
+      data-modal-id={modal.instanceId}
+      data-status={modal.status}
+      role="presentation"
+    >
       {children}
     </div>
   );
@@ -537,7 +599,11 @@ export function AppModalProvider({ children }: { children: ReactNode }) {
 // app/layout.tsx (Server Component)
 import { AppModalProvider } from "./providers/modal-provider";
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="en">
       <body>
@@ -566,7 +632,9 @@ function TailwindRenderer({ children, modal }: ModalRendererProps) {
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50
                  transition-opacity data-[status=closing]:opacity-0"
     >
-      <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">{children}</div>
+      <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+        {children}
+      </div>
     </div>
   );
 }
@@ -597,10 +665,7 @@ function ShadcnRenderer({ children, modal }: ModalRendererProps) {
   }
 
   return (
-    <Dialog
-      open={modal.status === "open"}
-      onOpenChange={handleOpenChange}
-    >
+    <Dialog open={modal.status === "open"} onOpenChange={handleOpenChange}>
       <DialogContent>{children}</DialogContent>
     </Dialog>
   );
@@ -629,7 +694,10 @@ interface RenameValues {
   name: string;
 }
 
-function RenameForm({ input, close }: ModalComponentProps<{ currentName: string }, RenameValues>) {
+function RenameForm({
+  input,
+  close,
+}: ModalComponentProps<{ currentName: string }, RenameValues>) {
   const { register, handleSubmit } = useForm<RenameValues>({
     defaultValues: { name: input.currentName },
   });
@@ -648,10 +716,18 @@ function RenameForm({ input, close }: ModalComponentProps<{ currentName: string 
 Supply your own confirm implementation (design-system markup, a11y, focus management) and pass it to `confirmModal`. `modal.confirm()` then renders yours instead of the built-in reference.
 
 ```tsx
-import { createModal, type ModalComponentProps } from "@okyrychenko-dev/react-modal-manager";
-import type { ConfirmModalParams, ConfirmModalResult } from "@okyrychenko-dev/react-modal-manager";
+import {
+  createModal,
+  type ModalComponentProps,
+} from "@okyrychenko-dev/react-modal-manager";
+import type {
+  ConfirmModalParams,
+  ConfirmModalResult,
+} from "@okyrychenko-dev/react-modal-manager";
 
-function MyConfirm(props: ModalComponentProps<ConfirmModalParams, ConfirmModalResult>) {
+function MyConfirm(
+  props: ModalComponentProps<ConfirmModalParams, ConfirmModalResult>,
+) {
   const { input, close } = props;
   // render with your design system, then:
   // close({ confirmed: true })
@@ -866,9 +942,10 @@ and runs their behavior tests. The standalone `typecheck:examples` and
 
 Runnable example applications belong in `examples/<name>/`, each with its own
 private `package.json`, dependencies and application configuration. A local package
-dependency should resolve the library's public built exports. There are currently
-no standalone example applications; the App Router snippet only checks a client
-boundary and does not constitute a running Next.js integration.
+dependency should resolve the library's public built exports. The runnable
+[`nextjs-dialog` example](examples/nextjs-dialog/README.md) installs a local tarball
+and checks production App Router rendering and hydration with Radix Dialog.
+The App Router snippet remains a compile-only client boundary example.
 
 Packed-package consumer fixtures live in `tests/consumers/`. The existing
 `package:check` command packs the library and checks its ESM/CommonJS exports and
@@ -889,6 +966,13 @@ pnpm run build
 pnpm run build-storybook
 pnpm pack --pack-destination /tmp/react-modal-manager-pack
 ```
+
+### Runnable Next.js and Radix example
+
+See [`examples/nextjs-dialog`](examples/nextjs-dialog/README.md) for a complete
+App Router application with a custom Radix Dialog renderer, content-only confirmation,
+provider-bound handle dismissal and launcher cleanup. Run `pnpm run test:nextjs` to
+verify the packed library through a production build and Chromium interactions.
 
 ## License
 

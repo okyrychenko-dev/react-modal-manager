@@ -40,8 +40,8 @@
     "lint": "eslint src scripts --ext .ts,.tsx,.mjs",
     "lint:fix": "eslint src --ext .ts,.tsx --fix",
     "check": "pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm run test:run && pnpm run check:examples",
-    "format": "prettier --write \"src/**/*.{ts,tsx}\" \"scripts/**/*.{mjs,ts}\" \"examples/snippets/**/*.{ts,tsx,json}\" \"tests/consumers/**/*.{ts,tsx}\" \"*.{json,ts,mjs}\" \".github/workflows/*.yml\"",
-    "format:check": "prettier --check \"src/**/*.{ts,tsx}\" \"scripts/**/*.{mjs,ts}\" \"examples/snippets/**/*.{ts,tsx,json}\" \"tests/consumers/**/*.{ts,tsx}\" \"*.{json,ts,mjs}\" \".github/workflows/*.yml\"",
+    "format": "prettier --write \"src/**/*.{ts,tsx}\" \"scripts/**/*.{mjs,ts}\" \"examples/snippets/**/*.{ts,tsx,json}\" \"tests/consumers/**/*.{ts,tsx}\" \"*.{json,ts,mjs}\" \".github/workflows/*.yml\" \"examples/nextjs-dialog/app/**/*.{ts,tsx,css}\" \"examples/nextjs-dialog/*.{md,json,mjs}\" \"examples/nextjs-dialog/pnpm-workspace.yaml\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx}\" \"scripts/**/*.{mjs,ts}\" \"examples/snippets/**/*.{ts,tsx,json}\" \"tests/consumers/**/*.{ts,tsx}\" \"*.{json,ts,mjs}\" \".github/workflows/*.yml\" \"examples/nextjs-dialog/app/**/*.{ts,tsx,css}\" \"examples/nextjs-dialog/*.{md,json,mjs}\" \"examples/nextjs-dialog/pnpm-workspace.yaml\"",
     "test": "vitest",
     "test:run": "vitest run",
     "test:examples": "pnpm run build && vitest run --config examples/snippets/vitest.config.ts",
@@ -50,7 +50,9 @@
     "build-storybook": "storybook build",
     "test:storybook": "vitest run --config vitest.storybook.config.ts",
     "check:examples": "pnpm run build && pnpm run lint:examples && tsc --project examples/snippets/tsconfig.json && vitest run --config examples/snippets/vitest.config.ts",
-    "lint:examples": "eslint examples/snippets --ext .ts,.tsx"
+    "lint:examples": "eslint examples/snippets --ext .ts,.tsx",
+    "test:nextjs": "node scripts/check-nextjs-dialog.mjs",
+    "lint:nextjs": "eslint examples/nextjs-dialog/app --ext .ts,.tsx"
   },
   "keywords": [
     "react",

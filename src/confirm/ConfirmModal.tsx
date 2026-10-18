@@ -1,4 +1,8 @@
-import { isDefined, isNonEmptyArray } from "@okyrychenko-dev/type-utils";
+import {
+  assertDefined,
+  isDefined,
+  isNonEmptyArray,
+} from "@okyrychenko-dev/type-utils";
 import { useEffect, useId, useRef } from "react";
 import { registerConfirmFocus } from "./confirmFocus.utils";
 import {
@@ -32,9 +36,12 @@ export function ConfirmModal(
 
   useEffect(() => {
     const dialog = dialogRef.current;
-    if (!isDefined(dialog)) {
-      return;
-    }
+
+    assertDefined(
+      dialog,
+      "Confirmation dialog must be mounted before its effect",
+    );
+
     const releaseFocus = registerConfirmFocus(dialog);
 
     // Destructive confirms focus the safe action so an accidental Enter does not confirm.

@@ -196,6 +196,29 @@ Modals with any other input type still require an input argument.
 
 The promise settles **once**. The first `close(result)`, `reject(error)`, or `dismiss(reason)` changes the instance to `"closing"`; later settlement calls for that instance are ignored. `closeDelayMs` delays removal for an exit animation, but the promise settles immediately.
 
+Keep the original handle to wait for removal before continuing a sequence:
+
+```tsx
+const handle = modal.confirm({ title: "Continue?" });
+try {
+  const result = await handle;
+  await handle.whenRemoved();
+  if (result.confirmed) {
+    // Continue the flow after this instance leaves the lifecycle.
+  }
+} catch (error) {
+  // Removal also completes after dismissal or rejection.
+  await handle.whenRemoved();
+  if (!isInstanceOf(error, ModalDismissError)) {
+    throw error;
+  }
+}
+```
+
+`whenRemoved()` returns a `Promise<void>` that resolves when this instance leaves its owning lifecycle. You can call it while open, while closing, or after removal, and repeated calls share the same promise. It never rejects: dismissal and failure still belong to the result handle and must be handled separately. With no close delay, removal is immediate on settlement. Provider disposal removes both open and closing instances, completes their removal promises, and cancels pending timers. A handle opened on an already disposed lifecycle also has completed removal.
+
+This signal tracks lifecycle removal, not a React DOM commit, focus restoration, or a renderer-reported transition end. Configure `closeDelayMs` for your renderer's exit duration. Disposal completing removal does not mean the provider is still available for another modal. Handles from `open()`, registered definitions, registries and `confirm()` all support this method and retain their original provider owner. Ordinary promises returned by `.then()`, `.catch()` or `.finally()` do not carry the handle methods.
+
 | Action                                   | Promise outcome                                                     | When to use it                                        |
 | ---------------------------------------- | ------------------------------------------------------------------- | ----------------------------------------------------- |
 | `close(result)`                          | Resolves with typed `result`                                        | A completed flow or an expected result such as Cancel |

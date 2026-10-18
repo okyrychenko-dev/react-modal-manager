@@ -22,6 +22,7 @@ export interface ModalLifecycleState {
 export type ModalLifecycleHandle<TResult> = Promise<TResult> & {
   dismiss: (reason?: ModalDismissReason) => void;
   instanceId: ModalInstanceId;
+  whenRemoved: () => Promise<void>;
 };
 
 export interface ModalLifecycleObservation {

@@ -112,6 +112,7 @@ describe("modal lifecycle", () => {
     fireEvent.click(screen.getByRole("button", { name: "Close modal" }));
 
     await expect(result).resolves.toBe("Resolved");
+    await expect(result.whenRemoved()).resolves.toBeUndefined();
     expect(lifecycle.getSnapshot().instances).toEqual([]);
   });
 
@@ -120,6 +121,10 @@ describe("modal lifecycle", () => {
     const lifecycle = createModalLifecycle({ closeDelayMs: 100 });
 
     const result = lifecycle.open(testModal, { message: "First result" });
+    const removed = vi.fn();
+    const removal = result.whenRemoved();
+    expect(result.whenRemoved()).toBe(removal);
+    void removal.then(removed);
     const [instance] = lifecycle.getSnapshot().instances;
 
     render(instance.render());
@@ -127,12 +132,18 @@ describe("modal lifecycle", () => {
     result.dismiss("close-all");
 
     await expect(result).resolves.toBe("First result");
+    expect(result.whenRemoved()).toBe(removal);
+    expect(removed).not.toHaveBeenCalled();
     expect(lifecycle.getSnapshot().instances[0]?.status).toBe("closing");
 
     await vi.advanceTimersByTimeAsync(99);
+    expect(removed).not.toHaveBeenCalled();
     expect(lifecycle.getSnapshot().instances).toHaveLength(1);
 
     await vi.advanceTimersByTimeAsync(1);
+    await expect(removal).resolves.toBeUndefined();
+    await expect(result.whenRemoved()).resolves.toBeUndefined();
+    expect(removed).toHaveBeenCalledTimes(1);
     expect(lifecycle.getSnapshot().instances).toEqual([]);
   });
 
@@ -142,6 +153,9 @@ describe("modal lifecycle", () => {
     const first = lifecycle.open(testModal, { message: "First" });
     const second = lifecycle.open(testModal, { message: "Second" });
     const [firstInstance, secondInstance] = lifecycle.getSnapshot().instances;
+    const firstRemoval = first.whenRemoved();
+    const secondRemoved = vi.fn();
+    void second.whenRemoved().then(secondRemoved);
 
     const firstRender = render(firstInstance.render());
     fireEvent.click(screen.getByRole("button", { name: "Close modal" }));
@@ -154,13 +168,67 @@ describe("modal lifecycle", () => {
     await vi.advanceTimersByTimeAsync(50);
     await expect(first).resolves.toBe("First");
     await expect(second).resolves.toBe("Second");
+    await expect(firstRemoval).resolves.toBeUndefined();
+    expect(secondRemoved).not.toHaveBeenCalled();
     expect(
       lifecycle.getSnapshot().instances.map((instance) => instance.instanceId),
     ).toEqual(["modal-1"]);
 
     await vi.advanceTimersByTimeAsync(50);
+    expect(secondRemoved).toHaveBeenCalledTimes(1);
     expect(lifecycle.getSnapshot().instances).toEqual([]);
   });
+
+  it("should finish removal without retaining a timer when an observer disposes during settlement", async () => {
+    vi.useFakeTimers();
+    const lifecycle = createModalLifecycle({ closeDelayMs: 100 });
+    const handle = lifecycle.open(testModal, { message: "Disposed" });
+    const outcome = handle.catch((error: unknown) => error);
+    const removal = handle.whenRemoved();
+    lifecycle.subscribe(() => {
+      if (lifecycle.getSnapshot().instances[0]?.status === "closing") {
+        lifecycle.dispose();
+      }
+    });
+
+    handle.dismiss();
+
+    await expect(outcome).resolves.toMatchObject({ reason: "dismiss" });
+    await expect(removal).resolves.toBeUndefined();
+    expect(lifecycle.getSnapshot().instances).toEqual([]);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it.each(["dismiss", "reject", "close-all"])(
+    "should allow waiting first requested during closing after %s",
+    async (action) => {
+      vi.useFakeTimers();
+      const lifecycle = createModalLifecycle({ closeDelayMs: 100 });
+      const handle = lifecycle.open(testModal, { message: "Pending" });
+      const outcome = handle.catch((error: unknown) => error);
+      const [instance] = lifecycle.getSnapshot().instances;
+      render(instance.render());
+
+      if (action === "reject") {
+        fireEvent.click(screen.getByRole("button", { name: "Reject modal" }));
+      } else if (action === "close-all") {
+        lifecycle.closeAll();
+      } else {
+        handle.dismiss();
+      }
+
+      await expect(outcome).resolves.toBeInstanceOf(Error);
+      const removed = vi.fn();
+      const removal = handle.whenRemoved();
+      void removal.then(removed);
+      await vi.advanceTimersByTimeAsync(99);
+      expect(removed).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(1);
+      await expect(removal).resolves.toBeUndefined();
+      expect(removed).toHaveBeenCalledTimes(1);
+      expect(lifecycle.getSnapshot().instances).toEqual([]);
+    },
+  );
 
   it("should dismiss the targeted instance through the lifecycle or handle", async () => {
     const lifecycle = createModalLifecycle({ closeDelayMs: 0 });
@@ -224,6 +292,8 @@ describe("modal lifecycle", () => {
     const closing = lifecycle.open(testModal, { message: "Closing" });
     const pending = lifecycle.open(testModal, { message: "Pending" });
     const pendingOutcome = pending.catch((error: unknown) => error);
+    const closingRemoval = closing.whenRemoved();
+    const pendingRemoval = pending.whenRemoved();
     const [closingInstance, pendingInstance] =
       lifecycle.getSnapshot().instances;
 
@@ -235,6 +305,10 @@ describe("modal lifecycle", () => {
 
     lifecycle.dispose();
     lifecycle.dispose();
+    await expect(closingRemoval).resolves.toBeUndefined();
+    await expect(pendingRemoval).resolves.toBeUndefined();
+    await expect(closing.whenRemoved()).resolves.toBeUndefined();
+    expect(vi.getTimerCount()).toBe(0);
     fireEvent.click(screen.getByRole("button", { name: "Close modal" }));
 
     await expect(pendingOutcome).resolves.toMatchObject({
@@ -258,6 +332,7 @@ describe("modal lifecycle", () => {
     await expect(afterDisposeOutcome).resolves.toMatchObject({
       reason: "provider-unmount",
     });
+    await expect(afterDispose.whenRemoved()).resolves.toBeUndefined();
     expect(publishedStatuses).toHaveLength(publicationCount);
   });
 
@@ -339,6 +414,7 @@ describe("modal lifecycle", () => {
   it("should ignore every competing settlement after rejection", async () => {
     const lifecycle = createModalLifecycle({ closeDelayMs: 100 });
     const result = lifecycle.open(testModal, { message: "Rejected" });
+    const removal = result.whenRemoved();
     const outcome = result.catch((error: unknown) => error);
     const [instance] = lifecycle.getSnapshot().instances;
 
@@ -353,6 +429,7 @@ describe("modal lifecycle", () => {
 
     await expect(outcome).resolves.toBeInstanceOf(ModalRejectError);
     await expect(outcome).resolves.toMatchObject({ value: "invalid" });
+    await expect(removal).resolves.toBeUndefined();
   });
 
   it("should use the default close-all reason", async () => {

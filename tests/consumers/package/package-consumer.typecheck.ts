@@ -73,6 +73,14 @@ const registryConfirmation: ModalHandle<ConfirmModalResult> = registry.confirm({
 const confirmationPromise: Promise<ConfirmModalResult> = confirmation;
 const confirmationId: ModalInstanceId = confirmation.instanceId;
 const registryConfirmationId: ModalInstanceId = registryConfirmation.instanceId;
+const removals: Array<Promise<void>> = [
+  handle.whenRemoved(),
+  directInfoHandle.whenRemoved(),
+  registryInfoHandle.whenRemoved(),
+  confirmation.whenRemoved(),
+  registryConfirmation.whenRemoved(),
+];
+void removals;
 confirmation.dismiss();
 registryConfirmation.dismiss("close-all");
 void confirmation.then((result) => {

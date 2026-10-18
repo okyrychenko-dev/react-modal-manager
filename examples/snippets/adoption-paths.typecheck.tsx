@@ -7,6 +7,7 @@ import {
   createModalRegistry,
   useModalManager,
 } from "@okyrychenko-dev/react-modal-manager";
+import { isInstanceOf } from "@okyrychenko-dev/type-utils";
 import { useEffect, useRef } from "react";
 import type {
   ModalComponentProps,
@@ -37,22 +38,18 @@ function RenameReportModal({
   close,
   input,
 }: ModalComponentProps<RenameReportInput, RenameReportResult>): ReactNode {
+  function handleCancel(): void {
+    close({ status: "cancelled" });
+  }
+
+  function handleRename(): void {
+    close({ status: "renamed", name: `${input.currentName} updated` });
+  }
+
   return (
     <section aria-label={`Rename ${input.currentName}`}>
-      <button
-        onClick={() => {
-          close({ status: "cancelled" });
-        }}
-      >
-        Cancel
-      </button>
-      <button
-        onClick={() => {
-          close({ status: "renamed", name: `${input.currentName} updated` });
-        }}
-      >
-        Rename
-      </button>
+      <button onClick={handleCancel}>Cancel</button>
+      <button onClick={handleRename}>Rename</button>
     </section>
   );
 }
@@ -112,7 +109,7 @@ export function ReportsPage(): ReactNode {
         }
       })
       .catch((error: unknown) => {
-        if (!(error instanceof ModalDismissError)) {
+        if (!isInstanceOf(error, ModalDismissError)) {
           console.error(error);
         }
       });
@@ -133,7 +130,7 @@ export function ReportsPage(): ReactNode {
         }
       })
       .catch((error: unknown) => {
-        if (!(error instanceof ModalDismissError)) {
+        if (!isInstanceOf(error, ModalDismissError)) {
           console.error(error);
         }
       })

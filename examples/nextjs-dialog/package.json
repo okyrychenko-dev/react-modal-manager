@@ -1,0 +1,27 @@
+{
+  "name": "modal-manager-nextjs-dialog",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "packageManager": "pnpm@11.21.0",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build --webpack",
+    "start": "next start",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@okyrychenko-dev/react-modal-manager": "file:./react-modal-manager.tgz",
+    "@okyrychenko-dev/type-utils": "0.1.2",
+    "@radix-ui/react-dialog": "1.3.1",
+    "next": "16.4.2",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.4",
+    "@types/react": "19.2.5",
+    "@types/react-dom": "19.2.3",
+    "typescript": "5.9.3"
+  }
+}

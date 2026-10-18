@@ -1,0 +1,47 @@
+body {
+  font-family: system-ui, sans-serif;
+  color: #172b3a;
+  background: #f5f7fa;
+  margin: 0;
+}
+
+main {
+  max-width: 48rem;
+  margin: 5rem auto;
+  padding: 2rem;
+}
+
+button {
+  font: inherit;
+  padding: 0.6rem 1rem;
+  cursor: pointer;
+}
+
+button:focus-visible {
+  outline: 3px solid #315ada;
+  outline-offset: 3px;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: #10203099;
+}
+
+.dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(32rem, 85vw);
+  padding: 2rem;
+  background: white;
+  border-radius: 1rem;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-block: 1rem;
+}

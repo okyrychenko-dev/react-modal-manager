@@ -82,6 +82,10 @@ jobs:
         if: matrix.node == 22
         run: pnpm exec playwright install --with-deps chromium
 
+      - name: Verify packed Next.js and Radix adoption
+        if: matrix.node == 22
+        run: pnpm run test:nextjs
+
       - name: Test Storybook in Chromium
         if: matrix.node == 22
         run: pnpm run test:storybook

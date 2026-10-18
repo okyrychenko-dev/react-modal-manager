@@ -14,18 +14,17 @@ function ReportModal({
   close,
 }: ModalComponentProps<ReportInput, void>): ReactNode {
   const workspace = useContext(ReportContext);
+
+  function handleDone(): void {
+    close();
+  }
+
   return (
     <section role="dialog" aria-label="Report context">
       <p>
         {workspace}: {input.reportName}
       </p>
-      <button
-        onClick={() => {
-          close();
-        }}
-      >
-        Done
-      </button>
+      <button onClick={handleDone}>Done</button>
     </section>
   );
 }

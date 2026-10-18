@@ -1,11 +1,12 @@
 import { isDefined, isInstanceOf } from "@okyrychenko-dev/type-utils";
 import { getFocusableElements } from "./ConfirmModal.utils";
+import type { Nullable } from "@okyrychenko-dev/type-utils";
 import type { ConfirmFocusEntry } from "./confirmFocus.types";
 
 // Presentation ownership follows the document, including independent React roots.
 const stacks = new WeakMap<Document, Array<ConfirmFocusEntry>>();
 
-function canRestoreFocus(element: Element | null): element is HTMLElement {
+function canRestoreFocus(element: Nullable<Element>): element is HTMLElement {
   return (
     isInstanceOf(element, HTMLElement) &&
     element.isConnected &&

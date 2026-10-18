@@ -20,6 +20,7 @@ import {
   isOneOf,
 } from "@okyrychenko-dev/type-utils";
 import { chromium } from "playwright";
+import { verifyUnavailableOpenerFallback } from "./__tests__/nextjs-dialog-focus.test.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const temporary = mkdtempSync(join(tmpdir(), "modal-nextjs-"));
@@ -225,6 +226,7 @@ try {
   await open.click();
   await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
   await expectOutcome("Cancelled: cancel");
+  await verifyUnavailableOpenerFallback(page);
   await page.close();
   assertTrue(failures.length === 0, failures.join("\n"));
   const manifest = JSON.parse(readFileSync(join(app, "package.json"), "utf8"));

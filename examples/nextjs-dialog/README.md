@@ -40,9 +40,10 @@ server on an available loopback port, and exercises Chromium. It checks server H
 hydration/browser errors and unhandled rejections, one dialog shell, confirm/cancel,
 Escape, individual handle dismissal, launcher cleanup and reopening. It also checks
 focus entry, Tab containment, background pointer blocking and focus restoration,
-including a removed opener. Browser/server processes and temporary files are cleaned
-up after success or failure. CI runs this command on Node 22 alongside the existing
-Storybook browser verification.
+including a removed opener and connected openers that become disabled, hidden,
+inert, aria-hidden or hidden through CSS. Browser/server processes and temporary
+files are cleaned up after success or failure. CI runs this command on Node 22
+alongside the existing Storybook browser verification.
 
 The exercised baseline is Next.js 16.4.2, React/React DOM 19.3.1 and Radix Dialog
 1.3.1, on Node 22.20.0. The command prints its actual versions. This is one production
@@ -61,9 +62,10 @@ bundlers or assistive technologies. No fonts or other assets are fetched at buil
   `{ confirmed: true }`. The launcher narrows these typed outcomes and retains
   provider-bound handles rather than issuing deferred registry ID commands.
 - There is no Radix Trigger because opening is imperative. The renderer remembers
-  the opener and restores it if connected, with a workspace heading fallback when
-  launcher cleanup removes that opener. The example uses immediate removal and
-  dismissible confirmations; animations, non-dismissible dialogs and stacked dialog
+  the opener, checks its eligibility and verifies that it actually receives focus.
+  Otherwise it focuses the workspace heading, including when the opener is removed
+  or remains connected but can no longer receive focus. The example uses immediate
+  removal and dismissible confirmations; animations, non-dismissible dialogs and stacked dialog
   focus policies need explicit integration work before adding them.
 - Keep meaningful titles/descriptions, visible focus styles and an appropriate focus
   fallback in your application. Check keyboard use, screen reader announcements,

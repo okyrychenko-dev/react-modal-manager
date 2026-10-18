@@ -65,11 +65,11 @@ const app = (
 ## Installation
 
 ```bash
-npm install @okyrychenko-dev/react-modal-manager @okyrychenko-dev/type-utils
+npm install @okyrychenko-dev/react-modal-manager
 # or
-yarn add @okyrychenko-dev/react-modal-manager @okyrychenko-dev/type-utils
+yarn add @okyrychenko-dev/react-modal-manager
 # or
-pnpm add @okyrychenko-dev/react-modal-manager @okyrychenko-dev/type-utils
+pnpm add @okyrychenko-dev/react-modal-manager
 ```
 
 Peer dependencies:
@@ -78,7 +78,15 @@ Peer dependencies:
 
 Modal lifecycle state is provider-owned and observed directly by React. There is no global lifecycle singleton.
 
-The package also installs its small runtime guard dependency automatically; React is the only peer dependency consumers provide. The examples import `isInstanceOf` directly, so the commands above declare `@okyrychenko-dev/type-utils` as an application dependency too.
+The package installs its runtime dependencies automatically; React is the only peer dependency consumers provide.
+
+To copy examples that directly import `isInstanceOf` from `@okyrychenko-dev/type-utils`, also add that package as a direct application dependency:
+
+```bash
+pnpm add @okyrychenko-dev/type-utils
+```
+
+Use `npm install` or `yarn add` instead if that is your package manager.
 
 ## Quick Start
 

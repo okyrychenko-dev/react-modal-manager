@@ -16,17 +16,53 @@ import {
   AdoptionPathsExample,
   ReportsPage,
   reportModals,
-} from "./adoption-paths.typecheck";
+} from "../adoption-paths.typecheck";
+import { ConfirmationButton } from "../ConfirmationButton";
 import {
   ContextReportModal,
   ReportContext,
-} from "./rendering-context.typecheck";
+} from "../rendering-context.typecheck";
 import type { Optional } from "@okyrychenko-dev/type-utils";
 
 describe("adoption paths", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     window.localStorage.clear();
+  });
+
+  it("should show typed confirmed and cancelled outcomes in the introductory caller", async () => {
+    render(
+      <ModalProvider>
+        <ConfirmationButton />
+      </ModalProvider>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Open confirmation" }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
+    await waitFor(() =>
+      expect(screen.getByRole("status").textContent).toBe("Confirmed"),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Open confirmation" }));
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    await waitFor(() =>
+      expect(screen.getByRole("status").textContent).toBe("Cancelled: cancel"),
+    );
+  });
+
+  it("should show expected dismissal in the introductory caller", async () => {
+    const registry = createModalRegistry({});
+    render(
+      <ModalProvider registry={registry}>
+        <ConfirmationButton />
+      </ModalProvider>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Open confirmation" }));
+    act(() => registry.closeAll());
+    await waitFor(() =>
+      expect(screen.getByRole("status").textContent).toBe(
+        "Dismissed: close-all",
+      ),
+    );
   });
 
   it("should report failures thrown by a detached confirmation result handler", async () => {

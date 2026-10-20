@@ -4,7 +4,7 @@ import remarkGfm from "remark-gfm";
 const config: StorybookConfig = {
   stories: [
     "../src/**/*.stories.@(js|jsx|mjs|ts|tsx)",
-    "../examples/snippets/**/*.stories.tsx",
+    "../examples/snippets/*.stories.tsx",
   ],
   addons: [
     "@storybook/addon-vitest",

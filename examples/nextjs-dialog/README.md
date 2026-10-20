@@ -22,6 +22,8 @@ For production use, run `pnpm --dir examples/nextjs-dialog run build` followed b
 `pnpm --dir examples/nextjs-dialog run typecheck`. The example manifest and lockfile pin the published package and framework
 dependencies. No local package archive is needed for ordinary use.
 
+The committed dependency remains the published **0.2.0** baseline. The repository prepares **0.3.0**; its default packed smoke verifies that candidate without requiring npm publication. Snippets use the current workspace version. Update this standalone npm pin and lockfile after 0.3.0 is published, rather than declaring an unavailable registry version.
+
 ## Unattended verification
 
 ```sh

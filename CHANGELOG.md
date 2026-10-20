@@ -7,13 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - Unreleased candidate
+
 ### Added
 
-- Add opt-in `ModalHandle.whenRemoved()` to await lifecycle removal after the close delay or provider disposal, independently of result settlement.
+- Add opt-in `ModalHandle.whenRemoved()` to await lifecycle removal after the close delay or provider disposal, independently of result settlement. Repeated calls share a promise; this does not acknowledge DOM commits, focus restoration or animation completion.
+- Add a complete portable React/Radix confirmation recipe, checked consumer snippets, scope-owned cancellation and a runnable Next.js/Radix customer flow with local render-error recovery.
+- Add production Chromium verification of packed Next.js consumers and browser interaction coverage for Storybook; include the Next.js smoke in the release gate.
+
+### Changed
+
+- Return a provider-bound `ModalHandle<ConfirmModalResult>` from manager and registry `confirm()`, including `instanceId`, `dismiss()` and `whenRemoved()`. Awaiting, chaining and typed confirmation outcomes remain supported. Code depending on a plain Promise return contract should review this change; derived promises do not retain handle members.
+- Generate modal definition IDs without requiring `crypto.randomUUID()`. Generated IDs are module-local implementation identities, not globally unique or persistent keys; explicit IDs remain supported.
+- Replace the long introduction with focused adoption guides and document automatic viewport rendering, rendering context, lifecycle-local instance IDs and handle ownership.
+- Pin package README guide links to the release tag so documentation follows the installed artifact.
 
 ### Fixed
 
+- Preserve registry routing precedence when Provider configuration changes while using the latest configuration for future operations.
+- Preserve focus within remaining stacked confirmations, restore eligible openers and provide fallback focus when an opener is unavailable.
+- Honor Radix recipe Escape/outside dismissal policy and initially focus Cancel for dangerous confirmations, while preserving explicit answers and owner dismissal.
+- Handle expected dismissal and unexpected failures in adoption examples without unhandled rejections.
 - Avoid retaining a removal timer when a lifecycle observer disposes the provider during settlement.
+
+### Compatibility and release status
+
+- Prepare 0.3.0 as a pre-1.0 minor release because the public confirmation return contract changes and handle removal waiting is added. React 18/19 peer support and the type-utils runtime dependency remain unchanged.
+- npm `latest` was verified as 0.2.0 on 2026-10-20. This candidate is not a publication announcement. The standalone Next.js example intentionally pins that published baseline; the release gate replaces it only in a temporary copy with the candidate tarball. Snippets consume the current workspace package.
+- Publication uses the existing tag workflow: after approval and merge, create/push `v0.3.0` matching package.json; CI runs the release gate before publishing with provenance. No tag, publication or deployment is performed by release preparation.
 
 ## [0.2.0] - 2026-09-14
 
@@ -40,3 +61,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Make lifecycle Storybook examples repeatable after modal settlement.
 
 [0.2.0]: https://github.com/okyrychenko-dev/react-modal-manager/compare/v0.1.0...v0.2.0
+
+[0.3.0]: https://github.com/okyrychenko-dev/react-modal-manager/compare/v0.2.0...v0.3.0

@@ -38,7 +38,7 @@ import "./portable-react.css";
 
 For a standalone entry point, copy [portable-react.main.tsx](../examples/snippets/portable-react.main.tsx) and load it through your bundler from an HTML document containing `<div id="root"></div>`. It mounts with `createRoot`; keep your existing root if the application already has one. The caller's `"use client"` directive is harmless in plain React and can be omitted.
 
-The files are complete source, not pseudocode: all library imports use public package entry points. There are no imports from the Next.js example. This is the current repository recipe; it does not assert that a candidate release has been published. To reproduce the repository verification against current source, run `pnpm install` and `pnpm run check:examples` in a checkout. That command builds the local public package, typechecks the files and runs the example tests.
+The files are complete source, not pseudocode: all library imports use public package entry points. There are no imports from the Next.js example. This is the current repository recipe; it does not assert that a candidate release has been published. To reproduce the repository verification against current source, run `pnpm install` and `pnpm run check:examples` in a checkout. The snippets have their own private workspace package in `examples/snippets/package.json`, which declares the recipe dependencies. The root install includes it automatically. `check:examples` builds the local public package, then delegates linting, typechecking and tests to that example package. Shared development tools remain in the repository root.
 
 ## Composition and ownership
 

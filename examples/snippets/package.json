@@ -1,0 +1,20 @@
+{
+  "name": "modal-manager-snippets",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --project tsconfig.json",
+    "lint": "eslint . --ext .ts,.tsx",
+    "test": "vitest run --config vitest.config.ts",
+    "check": "pnpm run lint && pnpm run typecheck && pnpm run test"
+  },
+  "dependencies": {
+    "@okyrychenko-dev/react-modal-manager": "workspace:*",
+    "@okyrychenko-dev/type-utils": "^0.1.2",
+    "@radix-ui/react-dialog": "1.3.1"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0"
+  }
+}

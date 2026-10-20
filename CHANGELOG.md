@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.3.0] - Unreleased candidate
+## [0.3.0] - 2026-10-20
 
 ### Added
 
@@ -30,11 +30,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Handle expected dismissal and unexpected failures in adoption examples without unhandled rejections.
 - Avoid retaining a removal timer when a lifecycle observer disposes the provider during settlement.
 
-### Compatibility and release status
+### Compatibility
 
-- Prepare 0.3.0 as a pre-1.0 minor release because the public confirmation return contract changes and handle removal waiting is added. React 18/19 peer support and the type-utils runtime dependency remain unchanged.
-- npm `latest` was verified as 0.2.0 on 2026-10-20. This candidate is not a publication announcement. The standalone Next.js example intentionally pins that published baseline; the release gate replaces it only in a temporary copy with the candidate tarball. Snippets consume the current workspace package.
-- Publication uses the existing tag workflow: after approval and merge, create/push `v0.3.0` matching package.json; CI runs the release gate before publishing with provenance. No tag, publication or deployment is performed by release preparation.
+- 0.3.0 is a pre-1.0 minor release because the public confirmation return contract changes and handle removal waiting is added. React 18/19 peer support and the type-utils runtime dependency remain unchanged.
+- The standalone Next.js example pins the published 0.2.0 baseline; the release gate replaces it only in a temporary copy with the release tarball. Snippets consume the current workspace package.
 
 ## [0.2.0] - 2026-09-14
 

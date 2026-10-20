@@ -222,8 +222,114 @@ describe("portable React confirmation", () => {
     );
   });
 
-  it("should preserve focus in the upper dialog when a lower dialog is dismissed", async () => {
+  it.each(["Lower", "Middle"])(
+    "should preserve top dialog focus when the %s dialog in a three-dialog stack is dismissed",
+    async (dismissedTitle) => {
+      const registry = createModalRegistry({});
+      render(
+        <ModalProvider
+          registry={registry}
+          renderer={PortableDialogRenderer}
+          confirmModal={portableConfirmation}
+        >
+          <ConfirmationButton />
+        </ModalProvider>,
+      );
+      let lower: Optional<ReturnType<typeof registry.confirm>>;
+      let middle: Optional<ReturnType<typeof registry.confirm>>;
+      let upper: Optional<ReturnType<typeof registry.confirm>>;
+
+      act(() => {
+        lower = registry.confirm({ title: "Lower decision" });
+      });
+
+      const lowerDialog = await screen.findByRole("dialog", {
+        name: "Lower decision",
+      });
+
+      act(() => {
+        middle = registry.confirm({ title: "Middle decision" });
+      });
+      const middleDialog = await screen.findByRole("dialog", {
+        name: "Middle decision",
+      });
+
+      act(() => {
+        upper = registry.confirm({ title: "Upper decision" });
+      });
+
+      const dialog = await screen.findByRole("dialog", {
+        name: "Upper decision",
+      });
+      const confirm = within(dialog).getByRole("button", { name: "Confirm" });
+
+      await waitFor(() => expect(document.activeElement).toBe(confirm));
+
+      assertDefined(lower);
+      assertDefined(middle);
+      assertDefined(upper);
+
+      let lowerReason = "close-all";
+      let middleReason = "dismiss";
+
+      if (dismissedTitle === "Lower") {
+        lowerReason = "dismiss";
+        middleReason = "close-all";
+      }
+
+      const lowerDismissed = expect(lower).rejects.toMatchObject({
+        reason: lowerReason,
+      });
+      const middleDismissed = expect(middle).rejects.toMatchObject({
+        reason: middleReason,
+      });
+
+      const dismissedHandle = dismissedTitle === "Lower" ? lower : middle;
+      const remainingDialog =
+        dismissedTitle === "Lower" ? middleDialog : lowerDialog;
+
+      const unexpectedFocus = vi.fn();
+
+      remainingDialog.addEventListener("focus", unexpectedFocus);
+
+      vi.useFakeTimers();
+
+      act(() => dismissedHandle.dismiss());
+
+      await act(async () => {
+        await vi.runOnlyPendingTimersAsync();
+      });
+
+      vi.useRealTimers();
+
+      await waitFor(() =>
+        expect(
+          screen.queryByRole("dialog", {
+            name: `${dismissedTitle} decision`,
+            hidden: true,
+          }),
+        ).toBeNull(),
+      );
+
+      const focusedElement = document.activeElement;
+      remainingDialog.removeEventListener("focus", unexpectedFocus);
+
+      fireEvent.click(confirm);
+
+      await expect(upper).resolves.toEqual({ confirmed: true });
+
+      act(() => registry.closeAll());
+
+      await Promise.all([lowerDismissed, middleDismissed]);
+
+      expect(unexpectedFocus).not.toHaveBeenCalled();
+      expect(focusedElement).toBe(confirm);
+    },
+  );
+
+  it("should restore focus to the topmost remaining dialog after the focused dialog is removed", async () => {
     const registry = createModalRegistry({});
+
     render(
       <ModalProvider
         registry={registry}
@@ -233,47 +339,61 @@ describe("portable React confirmation", () => {
         <ConfirmationButton />
       </ModalProvider>,
     );
-    let lower: Optional<ReturnType<typeof registry.confirm>>;
-    let upper: Optional<ReturnType<typeof registry.confirm>>;
 
-    act(() => {
-      lower = registry.confirm({ title: "Lower decision" });
-    });
+    const handles: Array<ReturnType<typeof registry.confirm>> = [];
+    const outcomes: Array<Promise<unknown>> = [];
+    const dialogs: Array<HTMLElement> = [];
 
-    await screen.findByRole("dialog", { name: "Lower decision" });
+    for (const title of [
+      "Lower decision",
+      "Middle decision",
+      "Upper decision",
+    ]) {
+      act(() => {
+        const handle = registry.confirm({ title });
+        handles.push(handle);
+        outcomes.push(handle.catch((error: unknown) => error));
+      });
 
-    act(() => {
-      upper = registry.confirm({ title: "Upper decision" });
-    });
+      const dialog = await screen.findByRole("dialog", { name: title });
 
-    const dialog = await screen.findByRole("dialog", {
-      name: "Upper decision",
-    });
-    const confirm = within(dialog).getByRole("button", { name: "Confirm" });
+      dialogs.push(dialog);
 
-    await waitFor(() => expect(document.activeElement).toBe(confirm));
+      await waitFor(() =>
+        expect(dialog.contains(document.activeElement)).toBe(true),
+      );
+    }
 
-    assertDefined(lower);
+    const upper = handles[2];
+    const lowerDialog = dialogs[0];
+
     assertDefined(upper);
+    assertDefined(lowerDialog);
 
-    const lowerDismissed = expect(lower).rejects.toMatchObject({
-      reason: "dismiss",
+    const unexpectedFocus = vi.fn();
+
+    lowerDialog.addEventListener("focus", unexpectedFocus);
+
+    vi.useFakeTimers();
+
+    act(() => upper.dismiss());
+
+    await act(async () => {
+      await vi.runOnlyPendingTimersAsync();
     });
-    const lowerHandle = lower;
 
-    act(() => lowerHandle.dismiss());
+    vi.useRealTimers();
 
-    await lowerDismissed;
-    await waitFor(() =>
-      expect(
-        screen.queryByRole("dialog", { name: "Lower decision", hidden: true }),
-      ).toBeNull(),
-    );
+    const middle = screen.getByRole("dialog", { name: "Middle decision" });
+    const restoredFocus = document.activeElement;
 
-    expect(document.activeElement).toBe(confirm);
+    lowerDialog.removeEventListener("focus", unexpectedFocus);
 
-    fireEvent.click(confirm);
+    act(() => registry.closeAll());
 
-    await expect(upper).resolves.toEqual({ confirmed: true });
+    await Promise.all(outcomes);
+
+    expect(unexpectedFocus).not.toHaveBeenCalled();
+    expect(middle.contains(restoredFocus)).toBe(true);
   });
 });

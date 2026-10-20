@@ -25,14 +25,20 @@ export function DialogSurface(
   function handleCloseAutoFocus(event: Event): void {
     event.preventDefault();
     // A departing shell must not take focus from a subsequent step or stack.
-    const activeDialog = document.querySelector(
+    const openDialogs = document.querySelectorAll(
       '[role="dialog"][data-state="open"]',
     );
 
-    if (isInstanceOf(activeDialog, HTMLElement)) {
-      if (!activeDialog.contains(document.activeElement)) {
-        activeDialog.focus();
+    for (const dialog of openDialogs) {
+      if (dialog.contains(document.activeElement)) {
+        return;
       }
+    }
+
+    const topDialog = openDialogs.item(openDialogs.length - 1);
+
+    if (isInstanceOf(topDialog, HTMLElement)) {
+      topDialog.focus();
       return;
     }
 

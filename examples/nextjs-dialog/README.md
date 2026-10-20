@@ -2,7 +2,7 @@
 
 This runnable App Router example installs the published library from **npm**, uses a
 server-rendered route with a client provider, and supplies a custom renderer plus
-content-only confirmation. It uses only public package imports. Next.js, React DOM
+custom confirmation surface. It uses only public package imports. Next.js, React DOM
 and Radix are dependencies of this example, not of the modal-manager package.
 
 From the repository root, with Node 22 and pnpm 11.21.0:
@@ -37,7 +37,7 @@ tarball, preserves external lockfile entries, installs with
 `--frozen-lockfile`, typechecks, builds with Webpack, starts a production
 server on an available loopback port, and exercises Chromium. It checks server HTML,
 hydration/browser errors and unhandled rejections, one dialog shell, confirm/cancel,
-Escape, individual handle dismissal, launcher cleanup and reopening. It also checks
+Escape/outside dismissal policies, safe initial focus, individual handle dismissal, launcher cleanup and reopening. It also checks
 focus entry, Tab containment, background pointer blocking and focus restoration,
 including a removed opener and connected openers that become disabled, hidden,
 inert, aria-hidden or hidden through CSS. Browser/server processes and temporary
@@ -53,9 +53,17 @@ bundlers or assistive technologies. No fonts or other assets are fetched at buil
 
 - `DialogExample` is the client provider boundary. The server page never opens a
   modal. The provider renders its viewport automatically; do not add another viewport.
-- `DialogRenderer` owns the single Radix modal shell, portal, focus containment and
-  background interaction policy. `ConfirmationContent` supplies Radix `Title` and
-  `Description` and buttons, without a nested built-in confirmation or `role="dialog"`.
+- `DialogRenderer` owns the Radix root, portal and overlay. Each content component
+  composes one `DialogSurface` (`Dialog.Content`), which retains focus containment
+  and shared focus restoration. This lets `ConfirmationContent` supply the policy
+  directly to supported Radix events without a nested dialog.
+- Use **Dismissal policy** to choose omitted/default, enabled or disabled. Omitted
+  and `true` allow Escape and outside interaction; `false` prevents those dismissals
+  through `onEscapeKeyDown` and `onInteractOutside`. Explicit Cancel/Confirm and
+  owner-bound `handle.dismiss()` remain available in every mode.
+- Enable **Dangerous confirmation** to focus Cancel on open. Other variants focus
+  Confirm. The confirmation still supplies meaningful Radix `Title` and
+  `Description`. See the [Radix Content API](https://www.radix-ui.com/primitives/docs/components/dialog#content).
 - Radix dismissals reject with `ModalDismissError`; the Cancel button resolves with
   `{ confirmed: false, reason: "cancel" }`; confirmation resolves with
   `{ confirmed: true }`. The launcher narrows these typed outcomes and retains
@@ -65,7 +73,7 @@ bundlers or assistive technologies. No fonts or other assets are fetched at buil
   Otherwise it focuses the workspace heading, including when the opener is removed
   or remains connected but can no longer receive focus. The basic confirmation uses immediate removal. The customer workflow below adds
   a bounded closing visual and a focus policy for sequential dialogs. More complex
-  stacks and non-dismissible dialogs need their own integration checks.
+  stacks still need checks with your application's content.
 - Keep meaningful titles/descriptions, visible focus styles and an appropriate focus
   fallback in your application. Check keyboard use, screen reader announcements,
   scroll behavior and portal placement with your actual content. These checks do not

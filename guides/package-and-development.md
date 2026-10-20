@@ -101,7 +101,7 @@ pnpm pack --pack-destination /tmp/react-modal-manager-pack
 ### Runnable Next.js and Radix example
 
 See [`examples/nextjs-dialog`](../examples/nextjs-dialog/README.md) for a complete
-App Router application with a custom Radix Dialog renderer, content-only confirmation,
+App Router application with a custom Radix Dialog renderer, a policy-aware confirmation surface,
 provider-bound handle dismissal and launcher cleanup. Run `pnpm run test:nextjs` to
 verify the packed library through a production build and Chromium interactions.
 

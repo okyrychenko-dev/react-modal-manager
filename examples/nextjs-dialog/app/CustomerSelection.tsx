@@ -1,6 +1,7 @@
 "use client";
 
 import * as Dialog from "@radix-ui/react-dialog";
+import { DialogSurface } from "./DialogSurface";
 import type { ModalComponentProps } from "@okyrychenko-dev/react-modal-manager";
 import type { Nullable } from "@okyrychenko-dev/type-utils";
 import type { ReactNode } from "react";
@@ -16,7 +17,7 @@ export function CustomerSelection(
   }
 
   return (
-    <>
+    <DialogSurface>
       <Dialog.Title>Select customer</Dialog.Title>
       <Dialog.Description>Choose a local customer to edit.</Dialog.Description>
       <div className="actions">
@@ -33,6 +34,6 @@ export function CustomerSelection(
         })}
         <button onClick={handleCancel}>Cancel selection</button>
       </div>
-    </>
+    </DialogSurface>
   );
 }

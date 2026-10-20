@@ -1,6 +1,8 @@
 "use client";
 
 import * as Dialog from "@radix-ui/react-dialog";
+import { useRef } from "react";
+import { DialogSurface } from "./DialogSurface";
 import type {
   ConfirmModalParams,
   ConfirmModalResult,
@@ -17,9 +19,30 @@ export function ConfirmationContent(
       description,
       confirmText = "Confirm",
       cancelText = "Cancel",
+      dismissible = true,
+      variant = "default",
     },
     close,
   } = props;
+
+  const cancelButton = useRef<HTMLButtonElement>(null);
+  const confirmButton = useRef<HTMLButtonElement>(null);
+
+  function handleOpenAutoFocus(event: Event): void {
+    event.preventDefault();
+
+    let initialFocus = confirmButton;
+    if (variant === "danger") {
+      initialFocus = cancelButton;
+    }
+    initialFocus.current?.focus();
+  }
+
+  function handleDismissInteraction(event: Event): void {
+    if (!dismissible) {
+      event.preventDefault();
+    }
+  }
 
   function handleCancel(): void {
     close({ confirmed: false, reason: "cancel" });
@@ -30,16 +53,24 @@ export function ConfirmationContent(
   }
 
   return (
-    <>
+    <DialogSurface
+      onOpenAutoFocus={handleOpenAutoFocus}
+      onEscapeKeyDown={handleDismissInteraction}
+      onInteractOutside={handleDismissInteraction}
+    >
       <Dialog.Title>{title}</Dialog.Title>
       <Dialog.Description asChild>
         <div>{description}</div>
       </Dialog.Description>
       <div className="actions">
-        <button onClick={handleCancel}>{cancelText}</button>
-        <button onClick={handleConfirm}>{confirmText}</button>
+        <button ref={cancelButton} onClick={handleCancel}>
+          {cancelText}
+        </button>
+        <button ref={confirmButton} onClick={handleConfirm}>
+          {confirmText}
+        </button>
       </div>
-      <p>Escape or click outside to dismiss.</p>
-    </>
+      {dismissible && <p>Escape or click outside to dismiss.</p>}
+    </DialogSurface>
   );
 }

@@ -2,6 +2,7 @@
 
 import * as Dialog from "@radix-ui/react-dialog";
 import { useState } from "react";
+import { DialogSurface } from "./DialogSurface";
 import type { ModalComponentProps } from "@okyrychenko-dev/react-modal-manager";
 import type { Nullable } from "@okyrychenko-dev/type-utils";
 import type { ChangeEvent, FormEvent, ReactNode } from "react";
@@ -28,7 +29,7 @@ export function CustomerEditor(
   }
 
   return (
-    <>
+    <DialogSurface>
       <Dialog.Title>Edit customer</Dialog.Title>
       <Dialog.Description>
         Changes apply only after confirmation.
@@ -45,6 +46,6 @@ export function CustomerEditor(
           <button disabled={!name.trim()}>Review changes</button>
         </div>
       </form>
-    </>
+    </DialogSurface>
   );
 }

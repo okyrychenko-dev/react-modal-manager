@@ -21,12 +21,12 @@ pnpm add @okyrychenko-dev/type-utils
 
 ## Start with a complete dialog
 
-Run the [Next.js + Radix application](https://github.com/okyrychenko-dev/react-modal-manager/blob/main/examples/nextjs-dialog/README.md). Its setup guide installs the packed library and starts a complete example with a portal, overlay, focus containment, focus restoration, content-only confirmation and handled outcomes. It also covers handle dismissal, launcher cleanup and reopening. Radix and Next.js are example dependencies, not core dependencies.
+Run the [Next.js + Radix application](https://github.com/okyrychenko-dev/react-modal-manager/blob/main/examples/nextjs-dialog/README.md). Its setup guide installs the packed library and starts a complete example with a portal, overlay, focus containment, focus restoration, a custom confirmation surface and handled outcomes. It also covers handle dismissal, launcher cleanup and reopening. Radix and Next.js are example dependencies, not core dependencies.
 
 The application combines these pieces:
 
-- [`DialogRenderer`](https://github.com/okyrychenko-dev/react-modal-manager/blob/main/examples/nextjs-dialog/app/DialogRenderer.tsx) owns the Radix shell and routes Escape/outside interaction to dismissal.
-- [`ConfirmationContent`](https://github.com/okyrychenko-dev/react-modal-manager/blob/main/examples/nextjs-dialog/app/ConfirmationContent.tsx) supplies title, description and typed Confirm/Cancel results.
+- [`DialogRenderer`](https://github.com/okyrychenko-dev/react-modal-manager/blob/main/examples/nextjs-dialog/app/DialogRenderer.tsx) owns the Radix root, portal and overlay; `DialogSurface` supplies the shared content surface and focus restoration.
+- [`ConfirmationContent`](https://github.com/okyrychenko-dev/react-modal-manager/blob/main/examples/nextjs-dialog/app/ConfirmationContent.tsx) composes `DialogSurface` with title, description, confirmation policy and typed Confirm/Cancel results.
 - [`DialogExample`](https://github.com/okyrychenko-dev/react-modal-manager/blob/main/examples/nextjs-dialog/app/DialogExample.tsx) installs both on one `ModalProvider`.
 
 Inside that configured Provider, a caller can await the inferred confirmation result:
@@ -82,7 +82,7 @@ export function ConfirmationButton(): ReactNode {
 | ----------------------------------------------------------- | ----------------------------------------------------------------------------------- |
 | Confirm                                                     | Resolves `{ confirmed: true }`                                                      |
 | Cancel in the Radix example or built-in confirmation        | Resolves `{ confirmed: false, reason: "cancel" }`                                   |
-| Escape or outside interaction in the Radix example          | Rejects with `ModalDismissError`, reason `"dismiss"`                                |
+| Escape or outside interaction in the Radix example (when dismissible) | Rejects with `ModalDismissError`, reason `"dismiss"`                                |
 | Escape or Dismiss button in built-in reference confirmation | Resolves `{ confirmed: false, reason: "dismiss" }` when dismissible                 |
 | `handle.dismiss()` or manager/registry `dismiss(id)`        | Rejects with `ModalDismissError`, default reason `"dismiss"`                        |
 | `closeAll()`                                                | Rejects pending operations with reason `"close-all"`                                |
@@ -93,11 +93,11 @@ For custom dialogs, the component chooses whether Cancel returns a result or dis
 
 ### Reference confirmation
 
-A bare `<ModalProvider>` uses the bundled **unstyled reference confirmation**. It has basic dialog/focus behavior but provides no overlay, portal, background inertness or pointer isolation. It is useful for inspecting the contract; use the complete Radix path above for application integration. Do not put the built-in confirmation inside a renderer that already supplies dialog semantics; provide content-only confirmation instead.
+A bare `<ModalProvider>` uses the bundled **unstyled reference confirmation**. It has basic dialog/focus behavior but provides no overlay, portal, background inertness or pointer isolation. It is useful for inspecting the contract; use the complete Radix path above for application integration. Do not put the built-in confirmation inside a renderer that already supplies dialog semantics; compose exactly one dialog content surface with the Radix renderer, as in the example.
 
 ## Custom flows and scope
 
-Define a component with `ModalComponentProps<TInput, TResult>`, create its definition with `createModal()`, then call `modal.open(definition, input)`. The returned `ModalHandle<TResult>` is awaitable and exposes `instanceId` and `dismiss()`. See the [typed flow guide](https://github.com/okyrychenko-dev/react-modal-manager/blob/main/guides/typed-flows.md) and [checked adoption examples](https://github.com/okyrychenko-dev/react-modal-manager/blob/main/examples/snippets/adoption-paths.typecheck.tsx).
+Define a component with `ModalComponentProps<TInput, TResult>`, create its definition with `createModal()`, then call `modal.open(definition, input)`. The returned `ModalHandle<TResult>` is awaitable and exposes `instanceId`, `dismiss()` and `whenRemoved()`. See the [typed flow guide](https://github.com/okyrychenko-dev/react-modal-manager/blob/main/guides/typed-flows.md) and [checked adoption examples](https://github.com/okyrychenko-dev/react-modal-manager/blob/main/examples/snippets/adoption-paths.typecheck.tsx).
 
 Keep the returned handle for deferred cancellation. Use a separate `createModalRegistry()` per independent scope when opening from commands outside React. A shared registry routes to its latest mounted Provider; an instance ID belongs only to its lifecycle. `handle.dismiss()` retains the original owner even after another Provider mounts. [Run the two-scope example](https://github.com/okyrychenko-dev/react-modal-manager/blob/main/guides/README.md#run-the-scope-example).
 

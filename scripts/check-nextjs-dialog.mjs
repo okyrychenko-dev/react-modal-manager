@@ -13,6 +13,7 @@ import {
   isOneOf,
 } from "@okyrychenko-dev/type-utils";
 import { chromium } from "playwright";
+import { expect } from "playwright/test";
 import {
   verifyCustomerCancellation,
   verifyCustomerFlow,
@@ -22,6 +23,7 @@ import {
   expectDialogOutcome,
   verifyUnavailableOpenerFallback,
 } from "./__tests__/nextjs-dialog-focus.test.mjs";
+import { verifyConfirmationPolicy } from "./__tests__/nextjs-dialog-policy.test.mjs";
 import { verifyRenderRecovery } from "./__tests__/nextjs-dialog-recovery.test.mjs";
 import { configurePackedModalPackage } from "./nextjs-dialog-package.utils.mjs";
 
@@ -172,6 +174,9 @@ try {
     ),
     "Focus did not enter dialog",
   );
+  await expect(
+    dialog.getByRole("button", { name: "Delete report", exact: true }),
+  ).toBeFocused();
   // Radix must prevent keyboard focus and pointer access to the background.
   await page.keyboard.press("Shift+Tab");
   assertTrue(
@@ -214,6 +219,7 @@ try {
   await open.click();
   await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
   await expectDialogOutcome(page, "Cancelled: cancel", open);
+  await verifyConfirmationPolicy(page);
   await verifyUnavailableOpenerFallback(page);
   await verifyCustomerFlow(page);
   await verifyCustomerCancellation(page);

@@ -90,6 +90,24 @@ Creates a typed registry for opening modals by key. Bind it directly with `<Moda
 - `closeAll(reason?): void`
 - `isReady(): boolean`
 
+### `ModalHandle<TResult>`
+
+`open()` and `confirm()` return an awaitable `ModalHandle<TResult>`. Awaiting it yields the typed result; dismissal rejects with `ModalDismissError`. Keep the original handle: promises derived through `.then()`, `.catch()` and `.finally()` do not retain its members.
+
+| Member | Contract |
+| --- | --- |
+| `instanceId` | Identifies this instance inside its owning Provider lifecycle; it is not a globally routable identifier. |
+| `dismiss(reason?): void` | Dismisses this instance through its original Provider, even if another Provider later becomes the registry target. Handle the resulting rejection. Later settlement attempts have no effect. |
+| `whenRemoved(): Promise<void>` | Waits for this instance to leave its original lifecycle. Repeated calls share one promise, including calls after removal. Never rejects; result errors belong to the awaitable handle. |
+
+Settlement happens once, immediately. A positive `closeDelayMs` retains the closing instance until its removal timer runs. Provider disposal removes open and closing instances, resolves their removal promises and cancels timers; an already disposed lifecycle also produces completed removal. Removal does not guarantee a React DOM commit, focus restoration or animation completion, or that the Provider remains available for another operation.
+
+See [typed flows and cleanup](typed-flows.md#outcomes-and-cleanup) for result handling, removal waiting and caller-owned cancellation.
+
+### `<ModalViewport>`
+
+The public export renders the current Provider's lifecycle instances, optionally through `renderer`. `ModalProvider` already renders it automatically: adding a second viewport under that Provider duplicates every rendered instance. Configure the Provider's `renderer` for shell or portal placement; there is no manual viewport placement mode.
+
 ### `ModalComponentProps<TInput, TResult>`
 
 Props passed to custom modal components.

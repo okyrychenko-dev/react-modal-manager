@@ -46,7 +46,7 @@ const result = await modal.open(renameModal, {
 ```
 
 - `ModalComponentProps<TInput, TResult>` ties the component's `input` and `close` together.
-- `modal.open(def, input)` rejects a mismatched `input` and returns `Promise<TResult>`.
+- `modal.open(def, input)` rejects a mismatched `input` and returns an awaitable `ModalHandle<TResult>` (see the [handle reference](api-reference.md#modalhandletresult)).
 - The registry infers input/result **from the key** (see below).
 - `confirm()` returns a discriminated union, so `if (result.confirmed)` narrows the type.
 

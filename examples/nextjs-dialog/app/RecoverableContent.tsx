@@ -1,5 +1,6 @@
 "use client";
 
+import { DialogSurface } from "./DialogSurface";
 import { FailingContent } from "./FailingContent";
 import { ModalContentBoundary } from "./ModalContentBoundary";
 import type { ModalComponentProps } from "@okyrychenko-dev/react-modal-manager";
@@ -10,8 +11,10 @@ export function RecoverableContent(
 ): ReactNode {
   const { dismiss } = props;
   return (
-    <ModalContentBoundary onDismiss={dismiss}>
-      <FailingContent />
-    </ModalContentBoundary>
+    <DialogSurface>
+      <ModalContentBoundary onDismiss={dismiss}>
+        <FailingContent />
+      </ModalContentBoundary>
+    </DialogSurface>
   );
 }

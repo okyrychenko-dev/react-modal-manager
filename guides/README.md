@@ -1,6 +1,6 @@
 # Consumer guides
 
-Start with the [runnable Next.js and Radix application](../examples/nextjs-dialog/README.md) for a complete dialog shell and typed confirmation. The [package introduction](../README.md) covers installation and outcomes.
+Start with the [plain React + Radix recipe](portable-react.md) for a complete dialog shell and typed confirmation in an existing application, or run the [Next.js and Radix application](../examples/nextjs-dialog/README.md) for larger flows. The [package introduction](../README.md) covers installation and outcomes.
 
 - [Typed flows and cleanup](typed-flows.md): definition input/results, handles, rejection and caller ownership.
 - [Registries and Provider scope](registry-and-scope.md): commands outside React, isolated registries, rendering context and owner-specific cancellation.

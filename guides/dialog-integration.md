@@ -75,6 +75,10 @@ The core prescribes no DOM structure, focus management, or styling for custom mo
 
 ## Recipes
 
+### Plain React
+
+The [complete plain React + Radix recipe](portable-react.md) includes checked source for the confirmation content, renderer, Provider, invoking component and CSS, plus installation and mounting instructions. It carries the verified confirmation policy without requiring Next.js.
+
 ### Next.js App Router (SSR)
 
 The lifecycle is created lazily **per provider**, lives in React context, and exposes its state directly to React through external-store observation. It owns opening, settlement, dismissal, delayed removal, and disposal. Server rendering reads a stable empty snapshot, and there is no module-level singleton or shared state across requests. The provider uses hooks, so it must run in a Client Component. Wrap it once and render that wrapper from your server layout.

@@ -21,7 +21,9 @@ pnpm add @okyrychenko-dev/type-utils
 
 ## Start with a complete dialog
 
-Run the [Next.js + Radix application](https://github.com/okyrychenko-dev/react-modal-manager/blob/main/examples/nextjs-dialog/README.md). Its setup guide installs the packed library and starts a complete example with a portal, overlay, focus containment, focus restoration, a custom confirmation surface and handled outcomes. It also covers handle dismissal, launcher cleanup and reopening. Radix and Next.js are example dependencies, not core dependencies.
+Use the [complete plain React + Radix recipe](https://github.com/okyrychenko-dev/react-modal-manager/blob/main/guides/portable-react.md) in an existing React application. It includes installation, styling, confirmation content, renderer, Provider and caller, with no Next.js runtime required.
+
+For a larger runnable application, use the [Next.js + Radix example](https://github.com/okyrychenko-dev/react-modal-manager/blob/main/examples/nextjs-dialog/README.md). Its setup guide installs the packed library and starts a complete example with a portal, overlay, focus containment, focus restoration, a custom confirmation surface and handled outcomes. It also covers handle dismissal, launcher cleanup and reopening. Radix and Next.js are example dependencies, not core dependencies.
 
 The application combines these pieces:
 

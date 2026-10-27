@@ -5,7 +5,8 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "paths": {
-      "@okyrychenko-dev/react-modal-manager": ["../../dist/index.d.ts"]
+      "@okyrychenko-dev/react-modal-manager": ["../../dist/index.d.ts"],
+      "@radix-ui/react-dialog": ["./node_modules/@radix-ui/react-dialog"]
     },
     "skipLibCheck": true,
     "jsx": "react-jsx",

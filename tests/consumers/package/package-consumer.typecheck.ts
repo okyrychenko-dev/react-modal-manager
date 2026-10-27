@@ -2,6 +2,7 @@ import {
   ModalProvider,
   createModal,
   createModalRegistry,
+  useOwnedModalHandles,
 } from "@okyrychenko-dev/react-modal-manager";
 import type {
   ConfirmModalResult,
@@ -10,6 +11,7 @@ import type {
   ModalInstanceId,
   ModalManager,
   ModalRendererProps,
+  OwnedModalHandles,
 } from "@okyrychenko-dev/react-modal-manager";
 import type { ComponentProps, ReactNode } from "react";
 
@@ -109,3 +111,26 @@ void directInfoHandle;
 void handle;
 void registryInfoHandle;
 void providerProps;
+
+declare const owner: OwnedModalHandles;
+const tracked = owner.track(handle);
+const trackedResult: Promise<RenameResult> = tracked;
+const isActive: () => boolean = owner.captureLifetime();
+owner.dismissAll();
+// A plain promise must not be accepted in place of an owner-bound handle.
+const acceptsPlainPromise: Promise<RenameResult> extends Parameters<
+  OwnedModalHandles["track"]
+>[0]
+  ? true
+  : false = false;
+// The inferred result must not widen to an unrelated result type.
+const returnsNumber: typeof tracked extends Promise<number> ? true : false =
+  false;
+void acceptsPlainPromise;
+void returnsNumber;
+void trackedResult;
+void tracked;
+void isActive;
+
+const ownedHook: () => OwnedModalHandles = useOwnedModalHandles;
+void ownedHook;

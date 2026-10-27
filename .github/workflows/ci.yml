@@ -37,8 +37,7 @@ jobs:
       - name: Install React compatibility target
         run: pnpm add --save-dev --save-exact --lockfile=false react@${{ matrix.react }} react-dom@${{ matrix.react-dom }}
 
-      - name: Verify provider ownership across React roots
-        run: pnpm exec vitest run src/provider/__tests__/ModalProvider.roots.test.tsx src/provider/__tests__/ModalProvider.test.tsx src/provider/__tests__/useModalLifecycleOwner.test.tsx
+      - run: pnpm run test:run
 
   verify:
     name: Verify (Node ${{ matrix.node }})
@@ -64,6 +63,10 @@ jobs:
 
       - name: Verify public snippets against the built library
         run: pnpm run check:examples
+
+      - name: Verify isolated Next.js ownership tests
+        if: matrix.node == 24
+        run: pnpm run test:nextjs:unit
 
       - name: Lint
         run: pnpm run lint

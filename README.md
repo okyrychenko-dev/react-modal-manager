@@ -1,6 +1,7 @@
 # @okyrychenko-dev/react-modal-manager
 
 [![npm version](https://img.shields.io/npm/v/@okyrychenko-dev/react-modal-manager.svg)](https://www.npmjs.com/package/@okyrychenko-dev/react-modal-manager)
+[![npm downloads](https://img.shields.io/npm/dm/@okyrychenko-dev/react-modal-manager.svg)](https://www.npmjs.com/package/@okyrychenko-dev/react-modal-manager)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 Open a dialog, await a typed result, and continue your application flow. Input and result types follow the modal definition or registry key; each `ModalProvider` owns an independent lifecycle.
@@ -76,20 +77,20 @@ export function ConfirmationButton(): ReactNode {
 }
 ```
 
-`result.confirmed` narrows the result; the negative branch exposes `result.reason`. This [checked caller](https://github.com/okyrychenko-dev/react-modal-manager/blob/v0.3.0/examples/snippets/ConfirmationButton.tsx) reports an outcome without modifying data. For application work, perform the action only in the confirmed branch and keep it inside the same error-handling boundary. A caller's own unmount does not cancel a Provider-owned operation; use the runnable launcher's cleanup pattern when the caller owns that lifetime.
+`result.confirmed` narrows the result; the negative branch exposes `result.reason`. This [checked caller](https://github.com/okyrychenko-dev/react-modal-manager/blob/v0.3.0/examples/snippets/ConfirmationButton.tsx) reports an outcome without modifying data. For application work, perform the action only in the confirmed branch and keep it inside the same error-handling boundary. A caller's own unmount does not cancel a Provider-owned operation; use explicit launcher ownership when the caller owns that lifetime.
 
 ### Outcomes
 
-| Action                                                      | Promise outcome                                                                     |
-| ----------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| Confirm                                                     | Resolves `{ confirmed: true }`                                                      |
-| Cancel in the Radix example or built-in confirmation        | Resolves `{ confirmed: false, reason: "cancel" }`                                   |
+| Action                                                                | Promise outcome                                                                     |
+| --------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| Confirm                                                               | Resolves `{ confirmed: true }`                                                      |
+| Cancel in the Radix example or built-in confirmation                  | Resolves `{ confirmed: false, reason: "cancel" }`                                   |
 | Escape or outside interaction in the Radix example (when dismissible) | Rejects with `ModalDismissError`, reason `"dismiss"`                                |
-| Escape or Dismiss button in built-in reference confirmation | Resolves `{ confirmed: false, reason: "dismiss" }` when dismissible                 |
-| `handle.dismiss()` or manager/registry `dismiss(id)`        | Rejects with `ModalDismissError`, default reason `"dismiss"`                        |
-| `closeAll()`                                                | Rejects pending operations with reason `"close-all"`                                |
-| Provider unmount                                            | Rejects pending operations with reason `"provider-unmount"`                         |
-| Custom content `close(result)` / `reject(error)`            | Resolves the typed result / rejects; non-Error rejections become `ModalRejectError` |
+| Escape or Dismiss button in built-in reference confirmation           | Resolves `{ confirmed: false, reason: "dismiss" }` when dismissible                 |
+| `handle.dismiss()` or manager/registry `dismiss(id)`                  | Rejects with `ModalDismissError`, default reason `"dismiss"`                        |
+| `closeAll()`                                                          | Rejects pending operations with reason `"close-all"`                                |
+| Provider unmount                                                      | Rejects pending operations with reason `"provider-unmount"`                         |
+| Custom content `close(result)` / `reject(error)`                      | Resolves the typed result / rejects; non-Error rejections become `ModalRejectError` |
 
 For custom dialogs, the component chooses whether Cancel returns a result or dismisses. The result settles once, immediately; `closeDelayMs` can keep a closing instance rendered afterward. Use `await handle.whenRemoved()` to wait for lifecycle removal after that delay or provider disposal. This does not await a React DOM commit or a renderer's animation callback. See [typed flows and cleanup](https://github.com/okyrychenko-dev/react-modal-manager/blob/v0.3.0/guides/typed-flows.md).
 
@@ -103,6 +104,8 @@ Define a component with `ModalComponentProps<TInput, TResult>`, create its defin
 
 Keep the returned handle for deferred cancellation. Use a separate `createModalRegistry()` per independent scope when opening from commands outside React. A shared registry routes to its latest mounted Provider; an instance ID belongs only to its lifecycle. `handle.dismiss()` retains the original owner even after another Provider mounts. [Run the two-scope example](https://github.com/okyrychenko-dev/react-modal-manager/blob/v0.3.0/guides/README.md#run-the-scope-example).
 
+The current checkout exports `useOwnedModalHandles()` for opt-in launcher ownership. `owner.track(handle)` preserves the typed result, forgets settled handles and dismisses pending handles during cleanup. Capture `const isActive = owner.captureLifetime()` before starting async work and check it before updating local state or opening the next step. Keep the original handle for individual dismissal and removal waiting; the tracked promise has no handle members. This hook is unreleased and is not available in the pinned npm 0.2.0 baseline.
+
 `ModalProvider` renders its viewport automatically. Use `renderer` for a shell or portal; adding another viewport renders the same instances twice. Modal content receives context from the Provider's rendering location, so pass launcher-only data as typed input or place the relevant context above the Provider.
 
 ## Guides and verification
@@ -112,7 +115,7 @@ Keep the returned handle for deferred cancellation. Use a separate `createModalR
 - [Public API reference](https://github.com/okyrychenko-dev/react-modal-manager/blob/v0.3.0/guides/api-reference.md)
 - [Package evidence and development commands](https://github.com/okyrychenko-dev/react-modal-manager/blob/v0.3.0/guides/package-and-development.md)
 
-From a repository checkout, `pnpm run check:examples` builds the public package and checks the consumer snippets. `pnpm run test:nextjs` verifies the packed Radix application through a production build and Chromium. `pnpm run build` followed by `pnpm run storybook` opens the interactive examples; `pnpm run test:storybook` runs their browser checks. Browser commands require Playwright Chromium (`pnpm exec playwright install chromium`). These checks do not establish full accessibility certification or support for every framework/browser combination.
+From a repository checkout, `pnpm run check:examples` builds the public package and checks the consumer snippets. `pnpm run preview:nextjs` starts a temporary production example against the current packed library and prints its URL; Ctrl+C stops it and removes the copy. `pnpm run test:nextjs:unit` runs the Next.js example's own typechecks and ownership tests in an isolated packed installation. `pnpm run test:nextjs` also lints that example, builds production output and exercises Chromium. `pnpm run build` followed by `pnpm run storybook` opens the interactive examples; `pnpm run test:storybook` runs their browser checks. Browser commands require Playwright Chromium (`pnpm exec playwright install chromium`). These checks do not establish full accessibility certification or support for every framework/browser combination.
 
 ## License
 

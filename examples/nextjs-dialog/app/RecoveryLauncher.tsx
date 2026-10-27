@@ -4,12 +4,12 @@ import {
   ModalDismissError,
   createModal,
   useModalManager,
+  useOwnedModalHandles,
 } from "@okyrychenko-dev/react-modal-manager";
 import { isError, isInstanceOf } from "@okyrychenko-dev/type-utils";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { confirmation } from "./confirmation.constants";
 import { RecoverableContent } from "./RecoverableContent";
-import type { ModalHandle } from "@okyrychenko-dev/react-modal-manager";
 import type { ReactNode } from "react";
 
 const failing = createModal<undefined, undefined>({
@@ -18,21 +18,11 @@ const failing = createModal<undefined, undefined>({
 
 export function RecoveryLauncher(): ReactNode {
   const manager = useModalManager();
-  const pending = useRef(new Set<ModalHandle<unknown>>());
+  const owner = useOwnedModalHandles();
   const [outcome, setOutcome] = useState("Recovery ready");
   const [settlements, setSettlements] = useState(0);
   const [busy, setBusy] = useState(false);
   const [neighborOutcome, setNeighborOutcome] = useState("Neighbor ready");
-
-  useEffect(() => {
-    const handles = pending.current;
-    return () => {
-      for (const handle of handles) {
-        handle.dismiss();
-      }
-      handles.clear();
-    };
-  }, []);
 
   async function openFailure(): Promise<void> {
     if (busy) {
@@ -44,10 +34,8 @@ export function RecoveryLauncher(): ReactNode {
 
     const handle = manager.open(failing);
 
-    pending.current.add(handle);
-
     try {
-      await handle;
+      await owner.track(handle);
       setOutcome("Unexpected recovery success");
     } catch (error: unknown) {
       if (isInstanceOf(error, ModalDismissError)) {
@@ -60,8 +48,6 @@ export function RecoveryLauncher(): ReactNode {
         setOutcome(message);
       }
     } finally {
-      pending.current.delete(handle);
-
       setSettlements((count) => count + 1);
       setBusy(false);
     }
@@ -78,12 +64,10 @@ export function RecoveryLauncher(): ReactNode {
       confirmText: "Complete neighbor",
     });
 
-    pending.current.add(handle);
-
     setNeighborOutcome("Neighbor pending");
 
     try {
-      const result = await handle;
+      const result = await owner.track(handle);
 
       if (result.confirmed) {
         setNeighborOutcome("Neighbor confirmed");
@@ -96,8 +80,6 @@ export function RecoveryLauncher(): ReactNode {
       } else {
         setNeighborOutcome("Neighbor failed");
       }
-    } finally {
-      pending.current.delete(handle);
     }
   }
 

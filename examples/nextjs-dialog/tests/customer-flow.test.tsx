@@ -1,6 +1,5 @@
 import {
   ModalProvider,
-  createModal,
   createModalRegistry,
 } from "@okyrychenko-dev/react-modal-manager";
 import {
@@ -12,23 +11,15 @@ import {
 } from "@testing-library/react";
 import { StrictMode } from "react";
 import { describe, expect, it } from "vitest";
-import { ConfirmationContent } from "../../nextjs-dialog/app/ConfirmationContent";
-import { CustomerFlowLauncher } from "../../nextjs-dialog/app/CustomerFlowLauncher";
-import { CustomerFlowRenderer } from "../../nextjs-dialog/app/CustomerFlowRenderer";
-import type {
-  ConfirmModalParams,
-  ConfirmModalResult,
-} from "@okyrychenko-dev/react-modal-manager";
+import { confirmation } from "../app/confirmation.constants";
+import { CustomerFlowLauncher } from "../app/CustomerFlowLauncher";
+import { CustomerFlowRenderer } from "../app/CustomerFlowRenderer";
 
 describe("customer flow ownership", () => {
   it.each(["selection", "editing", "confirmation"])(
     "should dismiss only owned work when the launcher unmounts during %s and allow a fresh run",
     async (step) => {
-      const registry = createModalRegistry({
-        confirmation: createModal<ConfirmModalParams, ConfirmModalResult>({
-          component: ConfirmationContent,
-        }),
-      });
+      const registry = createModalRegistry({ confirmation });
       const launcher = (
         <StrictMode>
           <ModalProvider registry={registry} renderer={CustomerFlowRenderer}>

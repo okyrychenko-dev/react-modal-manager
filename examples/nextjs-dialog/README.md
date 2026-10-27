@@ -25,21 +25,29 @@ committed npm pin remains **0.2.0** as lockfile input for the packed fixture; th
 version cannot run this updated source directly. Use the packed commands until a
 compatible version is published and the pin and lockfile can be updated together.
 Do not substitute an unpublished registry version.
-`pnpm run lint:nextjs` uses this example's `eslint.config.mjs` and
-`tsconfig.lint.json` to check consumers against the built workspace declarations;
-the packed smoke independently checks the actual installed artifact. To develop with hot reload,
+`pnpm run lint:nextjs` prepares the same installed fixture and uses this example's
+ESLint configuration and test tsconfig. Both linting and TypeScript resolve the
+installed package through its public exports; no declaration-file aliases are used.
+To develop with hot reload,
 install a compatible packed artifact in an isolated copy of the example and run
 its existing `dev` command.
 
 ## Unattended verification
 
 ```sh
+# Local typechecks and ownership tests, without Chromium:
+pnpm run test:nextjs:unit
+# Lint the installed consumer:
+pnpm run lint:nextjs
+# Full production verification:
 pnpm exec playwright install chromium
 pnpm run test:nextjs
 ```
 
-The smoke performs the same packed installation and production build as the
-preview, then exercises Chromium. It checks server HTML, hydration errors and
+Each command creates an isolated installation of the packed library and this
+example's dependencies. The full smoke runs typechecks, ownership tests and lint,
+builds the production application, then exercises Chromium. It checks server HTML,
+hydration errors and
 unhandled rejections, confirmation answers and dismissal policies, initial focus,
 individual cancellation, launcher cleanup and reopening. It also checks focus
 containment/restoration, unavailable openers, sequential and delayed customer

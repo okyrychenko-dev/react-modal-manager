@@ -1,3 +1,4 @@
+import tseslint from "typescript-eslint";
 import sharedConfig from "../../eslint.config.mjs";
 
 export default [
@@ -6,11 +7,22 @@ export default [
     files: ["**/*.{ts,tsx}"],
     languageOptions: {
       parserOptions: {
-        // Check consumers against the current build, not the historical npm pin.
+        // The verification command runs from the installed disposable app.
         projectService: false,
-        project: "./tsconfig.lint.json",
-        tsconfigRootDir: import.meta.dirname,
+        project: "./tsconfig.test.json",
+        tsconfigRootDir: process.cwd(),
       },
+    },
+  },
+  {
+    ...tseslint.configs.disableTypeChecked,
+    files: ["scripts/**/*.mjs", "tests/browser/**/*.mjs"],
+    rules: {
+      ...tseslint.configs.disableTypeChecked.rules,
+      "@typescript-eslint/explicit-function-return-type": "off",
+      "@typescript-eslint/explicit-module-boundary-types": "off",
+      "no-console": "off",
+      "no-undef": "off",
     },
   },
 ];

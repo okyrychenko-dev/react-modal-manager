@@ -41,13 +41,13 @@ command and guide updates were also present. Unrelated local materials were not
 part of the packed artifact. This is a source snapshot, not a measurement of later
 revisions.
 
-| Artifact | Bytes | Gzip bytes |
-| --- | ---: | ---: |
-| `dist/index.js` | 16,278 | 4,321 |
-| `dist/index.cjs` | 16,773 | 4,330 |
-| `dist/index.d.ts` | 5,444 | 1,319 |
-| Minimal `createModal` consumer | 3,138 | 1,526 |
-| Minimal Nice Modal named-`show` consumer | 758 | 473 |
+| Artifact                                 |  Bytes | Gzip bytes |
+| ---------------------------------------- | -----: | ---------: |
+| `dist/index.js`                          | 16,278 |      4,321 |
+| `dist/index.cjs`                         | 16,773 |      4,330 |
+| `dist/index.d.ts`                        |  5,444 |      1,319 |
+| Minimal `createModal` consumer           |  3,138 |      1,526 |
+| Minimal Nice Modal named-`show` consumer |    758 |        473 |
 
 Reproduce with `pnpm run package:check` and `pnpm run competitive:check` after
 `pnpm install --frozen-lockfile`. The first command packs the local package and
@@ -74,9 +74,13 @@ and runs their behavior tests. The standalone `typecheck:examples` and
 
 Runnable example applications belong in `examples/<name>/`, each with its own
 private `package.json`, dependencies and application configuration. The runnable
-[`nextjs-dialog` example](../examples/nextjs-dialog/README.md) installs the published
-npm package. Its verification harness installs a local tarball only in a disposable
-copy and checks production App Router rendering and hydration with Radix Dialog.
+[`nextjs-dialog` example](../examples/nextjs-dialog/README.md) keeps an independent
+npm manifest and lockfile. Its verification harness installs a local tarball in a
+disposable copy, along with the application's own React, Radix and DOM-test
+dependencies. The current example imports an unreleased hook, so use the packed
+commands until a compatible npm version is published. Tests, configurations and
+verification drivers live with the example. Neither example imports source from
+another example or overrides public package resolution.
 The App Router snippet remains a compile-only client boundary example.
 
 Packed-package consumer fixtures live in `tests/consumers/`. The existing
@@ -103,7 +107,10 @@ pnpm pack --pack-destination /tmp/react-modal-manager-pack
 See [`examples/nextjs-dialog`](../examples/nextjs-dialog/README.md) for a complete
 App Router application with a custom Radix Dialog renderer, a policy-aware confirmation surface,
 provider-bound handle dismissal and launcher cleanup. Run `pnpm run test:nextjs` to
-verify the packed library through a production build and Chromium interactions.
+verify its local typechecks, DOM ownership tests and lint, followed by a production
+build and Chromium interactions. `pnpm run test:nextjs:unit` runs just the local
+checks in an isolated installation; `pnpm run lint:nextjs` lints that same installed
+consumer environment. Snippets remain independent through `check:examples`.
 
 ### Release verification
 

@@ -1,51 +1,62 @@
 import { execFileSync, spawn } from "node:child_process";
 import { once } from "node:events";
-import { cpSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
-import { createRequire } from "node:module";
+import { readFileSync } from "node:fs";
 import { createServer } from "node:net";
-import { tmpdir } from "node:os";
-import { basename, join } from "node:path";
+import { join } from "node:path";
 import { setTimeout } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 import {
   assertDefined,
   assertTrue,
-  isFunction,
   isObject,
   isOneOf,
 } from "@okyrychenko-dev/type-utils";
 import { chromium } from "playwright";
 import { expect } from "playwright/test";
+import { verifyConfirmationPolicy } from "../tests/browser/confirmation-policy.mjs";
 import {
   verifyCustomerCancellation,
   verifyCustomerFlow,
   verifyDelayedCustomerFlow,
-} from "./__tests__/nextjs-dialog-flow.test.mjs";
+} from "../tests/browser/customer-flow.mjs";
 import {
   expectDialogOutcome,
   verifyUnavailableOpenerFallback,
-} from "./__tests__/nextjs-dialog-focus.test.mjs";
-import { verifyConfirmationPolicy } from "./__tests__/nextjs-dialog-policy.test.mjs";
-import { verifyRenderRecovery } from "./__tests__/nextjs-dialog-recovery.test.mjs";
-import { configurePackedModalPackage } from "./nextjs-dialog-package.utils.mjs";
+} from "../tests/browser/focus.mjs";
+import { verifyRenderRecovery } from "../tests/browser/render-recovery.mjs";
+import { createNextjsFixture, runPnpm } from "./fixture.utils.mjs";
 
-const root = fileURLToPath(new URL("../", import.meta.url));
 const published = process.argv.includes("--published");
 const serve = process.argv.includes("--serve");
-const temporary = mkdtempSync(join(tmpdir(), "modal-nextjs-"));
-const app = join(temporary, "app");
+const unitOnly = process.argv.includes("--unit-only");
+const lintOnly = process.argv.includes("--lint-only");
+assertTrue(
+  [serve, unitOnly, lintOnly].filter(Boolean).length <= 1,
+  "Choose one verification mode",
+);
+const fixture = createNextjsFixture({ published });
+const { app } = fixture;
 let server;
 let browser;
 let serverExit;
 const failures = [];
 
-function run(args, cwd = app) {
-  execFileSync("pnpm", args, {
-    cwd,
-    stdio: "inherit",
-    timeout: 240_000,
-    env: { ...process.env, NEXT_TELEMETRY_DISABLED: "1" },
-  });
+function lintExample() {
+  const eslint = fileURLToPath(
+    new URL("../../../node_modules/.bin/eslint", import.meta.url),
+  );
+  const config = fileURLToPath(
+    new URL("../eslint.config.mjs", import.meta.url),
+  );
+  execFileSync(
+    eslint,
+    ["--config", config, "app", "tests", "scripts", "--ext", ".ts,.tsx,.mjs"],
+    {
+      cwd: app,
+      stdio: "inherit",
+      timeout: 240_000,
+    },
+  );
 }
 
 async function availablePort() {
@@ -196,97 +207,95 @@ async function verifyBrowser(url) {
   });
 }
 
-try {
-  cpSync(join(root, "examples/nextjs-dialog"), app, {
-    recursive: true,
-    filter: (path) =>
-      !isOneOf(basename(path), [
-        "node_modules",
-        ".next",
-        "react-modal-manager.tgz",
-      ]),
-  });
-  if (!published) {
-    run(["run", "build"], root);
-    run(["pack", "--out", join(app, "react-modal-manager.tgz")], root);
-    configurePackedModalPackage(app, root);
-  }
-  run(["install", "--frozen-lockfile"]);
-  const loadPackage = createRequire(join(app, "package.json"));
-  const library = loadPackage("@okyrychenko-dev/react-modal-manager");
-  assertTrue(
-    isObject(library) && isFunction(library.useOwnedModalHandles),
-    "The pinned package does not export useOwnedModalHandles. Use the default packed smoke or pnpm run preview:nextjs; update the npm pin after a compatible release is published.",
-  );
-  run(["run", "typecheck"]);
-  run(["run", "build"]);
-  const port = await availablePort();
-  const url = `http://127.0.0.1:${port}`;
-  // Launch Next directly so termination owns the server, not a package-manager wrapper.
-  server = spawn(
-    process.execPath,
-    [
-      join(app, "node_modules/next/dist/bin/next"),
-      "start",
-      "--hostname",
-      "127.0.0.1",
-      "--port",
-      String(port),
-    ],
-    {
-      cwd: app,
-      stdio: ["ignore", "pipe", "pipe"],
-      env: { ...process.env, NEXT_TELEMETRY_DISABLED: "1" },
-    },
-  );
-  serverExit = once(server, "exit");
-  server.stdout.on("data", (data) => process.stdout.write(data));
-  server.stderr.on("data", (data) => {
-    failures.push(`Server stderr: ${data}`);
-    process.stderr.write(data);
-  });
-  const html = await ready(url);
-  assertTrue(html.includes("Report workspace"), "Server route did not render");
-  assertTrue(
-    !html.includes('role="dialog"'),
-    "Dialog opened during server rendering",
-  );
-  if (serve) {
-    const signals = new AbortController();
-    try {
-      console.log(
-        `Packed Next.js example ready at ${url}. Press Ctrl+C to stop and remove the temporary copy.`,
-      );
-      await Promise.race([
-        serverExit,
-        once(process, "SIGINT", { signal: signals.signal }),
-        once(process, "SIGTERM", { signal: signals.signal }),
-      ]);
-    } finally {
-      signals.abort();
-    }
-  } else {
-    await verifyBrowser(url);
-  }
-} finally {
+async function main() {
   try {
-    await browser?.close();
+    if (lintOnly) {
+      lintExample();
+      return;
+    }
+    if (!serve) {
+      runPnpm(["run", "check"], app);
+      if (unitOnly) {
+        return;
+      }
+      lintExample();
+    } else {
+      runPnpm(["run", "typecheck"], app);
+    }
+    runPnpm(["run", "build"], app);
+    const port = await availablePort();
+    const url = `http://127.0.0.1:${port}`;
+    // Launch Next directly so termination owns the server, not a package-manager wrapper.
+    server = spawn(
+      process.execPath,
+      [
+        join(app, "node_modules/next/dist/bin/next"),
+        "start",
+        "--hostname",
+        "127.0.0.1",
+        "--port",
+        String(port),
+      ],
+      {
+        cwd: app,
+        stdio: ["ignore", "pipe", "pipe"],
+        env: { ...process.env, NEXT_TELEMETRY_DISABLED: "1" },
+      },
+    );
+    serverExit = once(server, "exit");
+    server.stdout.on("data", (data) => process.stdout.write(data));
+    server.stderr.on("data", (data) => {
+      failures.push(`Server stderr: ${data}`);
+      process.stderr.write(data);
+    });
+    const html = await ready(url);
+    assertTrue(
+      html.includes("Report workspace"),
+      "Server route did not render",
+    );
+    assertTrue(
+      !html.includes('role="dialog"'),
+      "Dialog opened during server rendering",
+    );
+    if (serve) {
+      const signals = new AbortController();
+      try {
+        console.log(
+          `Packed Next.js example ready at ${url}. Press Ctrl+C to stop and remove the temporary copy.`,
+        );
+        await Promise.race([
+          serverExit,
+          once(process, "SIGINT", { signal: signals.signal }),
+          once(process, "SIGTERM", { signal: signals.signal }),
+        ]);
+      } finally {
+        signals.abort();
+      }
+    } else {
+      await verifyBrowser(url);
+    }
   } finally {
     try {
-      if (server && server.exitCode === null && server.signalCode === null) {
-        server.kill("SIGTERM");
-        const force = globalThis.setTimeout(
-          () => server.kill("SIGKILL"),
-          5_000,
-        );
-        try {
-          await serverExit;
-        } finally {
-          globalThis.clearTimeout(force);
-        }
-      }
+      await browser?.close();
     } finally {
-      rmSync(temporary, { recursive: true, force: true });
+      try {
+        if (server && server.exitCode === null && server.signalCode === null) {
+          server.kill("SIGTERM");
+          const force = globalThis.setTimeout(
+            () => server.kill("SIGKILL"),
+            5_000,
+          );
+          try {
+            await serverExit;
+          } finally {
+            globalThis.clearTimeout(force);
+          }
+        }
+      } finally {
+        fixture.dispose();
+      }
     }
   }
 }
+
+await main();

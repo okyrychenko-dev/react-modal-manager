@@ -1,5 +1,5 @@
 import { expect } from "playwright/test";
-import { expectDialogOutcome } from "./nextjs-dialog-focus.test.mjs";
+import { expectDialogOutcome } from "./focus.mjs";
 
 /**
  * @param {import("playwright").Page} page

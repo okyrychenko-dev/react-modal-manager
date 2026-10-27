@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Export `useOwnedModalHandles()` and `OwnedModalHandles` for opt-in launcher ownership: track typed results, dismiss pending handles on cleanup and capture lifetime guards that remain invalid after effect reconnection. Tracking outside an active effect lifetime immediately dismisses the supplied handle.
+
+### Changed
+
+- Import handle ownership from the public package in consumer examples instead of copying recipe source. Preview the Next.js example against a temporary packed build with `pnpm run preview:nextjs`; the pinned npm baseline does not yet provide the new hook.
+
 ## [0.3.0] - 2026-10-20
 
 ### Added
@@ -60,5 +68,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Make lifecycle Storybook examples repeatable after modal settlement.
 
 [0.2.0]: https://github.com/okyrychenko-dev/react-modal-manager/compare/v0.1.0...v0.2.0
-
 [0.3.0]: https://github.com/okyrychenko-dev/react-modal-manager/compare/v0.2.0...v0.3.0

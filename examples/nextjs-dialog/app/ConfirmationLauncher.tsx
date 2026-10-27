@@ -3,14 +3,11 @@
 import {
   ModalDismissError,
   useModalManager,
+  useOwnedModalHandles,
 } from "@okyrychenko-dev/react-modal-manager";
 import { isError, isInstanceOf } from "@okyrychenko-dev/type-utils";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { confirmation } from "./confirmation.constants";
-import type {
-  ConfirmModalResult,
-  ModalHandle,
-} from "@okyrychenko-dev/react-modal-manager";
 import type { Optional } from "@okyrychenko-dev/type-utils";
 import type { ChangeEvent, ReactNode } from "react";
 
@@ -44,18 +41,7 @@ export function ConfirmationLauncher(
   }
 
   const manager = useModalManager();
-  const pending = useRef(new Set<ModalHandle<ConfirmModalResult>>());
-
-  useEffect(() => {
-    const handles = pending.current;
-
-    return () => {
-      for (const handle of handles) {
-        handle.dismiss();
-      }
-      handles.clear();
-    };
-  }, []);
+  const owner = useOwnedModalHandles();
 
   function handleOpenConfirmation(): void {
     const variant = danger ? "danger" : "default";
@@ -80,9 +66,8 @@ export function ConfirmationLauncher(
       handle.dismiss();
     }
 
-    pending.current.add(handle);
-
-    void handle
+    void owner
+      .track(handle)
       .then((result) => {
         if (result.confirmed) {
           onOutcome("Confirmed");
@@ -102,9 +87,6 @@ export function ConfirmationLauncher(
 
           console.error(error);
         }
-      })
-      .finally(() => {
-        pending.current.delete(handle);
       });
   }
 

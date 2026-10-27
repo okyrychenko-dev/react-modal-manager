@@ -52,7 +52,8 @@
     "check:examples": "pnpm run build && pnpm --dir examples/snippets run check",
     "lint:examples": "pnpm --dir examples/snippets run lint",
     "test:nextjs": "node scripts/check-nextjs-dialog.mjs",
-    "lint:nextjs": "eslint examples/nextjs-dialog/app --ext .ts,.tsx"
+    "preview:nextjs": "node scripts/check-nextjs-dialog.mjs --serve",
+    "lint:nextjs": "pnpm run build && eslint --config examples/nextjs-dialog/eslint.config.mjs examples/nextjs-dialog/app --ext .ts,.tsx"
   },
   "keywords": [
     "react",

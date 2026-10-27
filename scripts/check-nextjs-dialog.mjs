@@ -1,6 +1,7 @@
 import { execFileSync, spawn } from "node:child_process";
 import { once } from "node:events";
 import { cpSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { createRequire } from "node:module";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
@@ -9,6 +10,7 @@ import { fileURLToPath } from "node:url";
 import {
   assertDefined,
   assertTrue,
+  isFunction,
   isObject,
   isOneOf,
 } from "@okyrychenko-dev/type-utils";
@@ -29,6 +31,7 @@ import { configurePackedModalPackage } from "./nextjs-dialog-package.utils.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const published = process.argv.includes("--published");
+const serve = process.argv.includes("--serve");
 const temporary = mkdtempSync(join(tmpdir(), "modal-nextjs-"));
 const app = join(temporary, "app");
 let server;
@@ -78,55 +81,7 @@ async function ready(url) {
   throw new Error("Next server readiness timed out");
 }
 
-try {
-  cpSync(join(root, "examples/nextjs-dialog"), app, {
-    recursive: true,
-    filter: (path) =>
-      !isOneOf(basename(path), [
-        "node_modules",
-        ".next",
-        "react-modal-manager.tgz",
-      ]),
-  });
-  if (!published) {
-    run(["run", "build"], root);
-    run(["pack", "--out", join(app, "react-modal-manager.tgz")], root);
-    configurePackedModalPackage(app, root);
-  }
-  run(["install", "--frozen-lockfile"]);
-  run(["run", "typecheck"]);
-  run(["run", "build"]);
-  const port = await availablePort();
-  const url = `http://127.0.0.1:${port}`;
-  // Launch Next directly so termination owns the server, not a package-manager wrapper.
-  server = spawn(
-    process.execPath,
-    [
-      join(app, "node_modules/next/dist/bin/next"),
-      "start",
-      "--hostname",
-      "127.0.0.1",
-      "--port",
-      String(port),
-    ],
-    {
-      cwd: app,
-      stdio: ["ignore", "pipe", "pipe"],
-      env: { ...process.env, NEXT_TELEMETRY_DISABLED: "1" },
-    },
-  );
-  serverExit = once(server, "exit");
-  server.stdout.on("data", (data) => process.stdout.write(data));
-  server.stderr.on("data", (data) => {
-    failures.push(`Server stderr: ${data}`);
-    process.stderr.write(data);
-  });
-  const html = await ready(url);
-  assertTrue(html.includes("Report workspace"), "Server route did not render");
-  assertTrue(
-    !html.includes('role="dialog"'),
-    "Dialog opened during server rendering",
-  );
+async function verifyBrowser(url) {
   browser = await chromium.launch();
   const page = await browser.newPage();
   let expectedRenderErrors = 0;
@@ -239,6 +194,80 @@ try {
     node: process.version,
     ...manifest.dependencies,
   });
+}
+
+try {
+  cpSync(join(root, "examples/nextjs-dialog"), app, {
+    recursive: true,
+    filter: (path) =>
+      !isOneOf(basename(path), [
+        "node_modules",
+        ".next",
+        "react-modal-manager.tgz",
+      ]),
+  });
+  if (!published) {
+    run(["run", "build"], root);
+    run(["pack", "--out", join(app, "react-modal-manager.tgz")], root);
+    configurePackedModalPackage(app, root);
+  }
+  run(["install", "--frozen-lockfile"]);
+  const loadPackage = createRequire(join(app, "package.json"));
+  const library = loadPackage("@okyrychenko-dev/react-modal-manager");
+  assertTrue(
+    isObject(library) && isFunction(library.useOwnedModalHandles),
+    "The pinned package does not export useOwnedModalHandles. Use the default packed smoke or pnpm run preview:nextjs; update the npm pin after a compatible release is published.",
+  );
+  run(["run", "typecheck"]);
+  run(["run", "build"]);
+  const port = await availablePort();
+  const url = `http://127.0.0.1:${port}`;
+  // Launch Next directly so termination owns the server, not a package-manager wrapper.
+  server = spawn(
+    process.execPath,
+    [
+      join(app, "node_modules/next/dist/bin/next"),
+      "start",
+      "--hostname",
+      "127.0.0.1",
+      "--port",
+      String(port),
+    ],
+    {
+      cwd: app,
+      stdio: ["ignore", "pipe", "pipe"],
+      env: { ...process.env, NEXT_TELEMETRY_DISABLED: "1" },
+    },
+  );
+  serverExit = once(server, "exit");
+  server.stdout.on("data", (data) => process.stdout.write(data));
+  server.stderr.on("data", (data) => {
+    failures.push(`Server stderr: ${data}`);
+    process.stderr.write(data);
+  });
+  const html = await ready(url);
+  assertTrue(html.includes("Report workspace"), "Server route did not render");
+  assertTrue(
+    !html.includes('role="dialog"'),
+    "Dialog opened during server rendering",
+  );
+  if (serve) {
+    const signals = new AbortController();
+    try {
+      console.log(
+        `Packed Next.js example ready at ${url}. Press Ctrl+C to stop and remove the temporary copy.`,
+      );
+      await Promise.race([
+        serverExit,
+        once(process, "SIGINT", { signal: signals.signal }),
+        once(process, "SIGTERM", { signal: signals.signal }),
+      ]);
+    } finally {
+      signals.abort();
+    }
+  } else {
+    await verifyBrowser(url);
+  }
 } finally {
   try {
     await browser?.close();

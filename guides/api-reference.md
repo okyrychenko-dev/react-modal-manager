@@ -12,6 +12,7 @@ Runtime exports:
 - `createModal`
 - `createModalRegistry`
 - `useModalManager`
+- `useOwnedModalHandles`
 - `ModalDismissError`
 - `ModalRejectError`
 
@@ -30,6 +31,7 @@ Type exports:
 - `ModalInstanceStatus`
 - `ModalOpenArgs`
 - `ModalManager`
+- `OwnedModalHandles`
 - `ModalOptions`
 - `ModalProviderProps`
 - `ModalRegistry`
@@ -67,6 +69,18 @@ Returns the modal manager from the nearest `ModalProvider`.
 - `dismiss(instanceId, reason?): void`
 - `closeAll(reason?): void`
 
+### `useOwnedModalHandles()`
+
+Unreleased; available from the current workspace or its packed build. Returns a stable `OwnedModalHandles` interface for opt-in launcher ownership. The hook does not read Provider context and can own handles from different Providers.
+
+- `track<TResult>(handle: ModalHandle<TResult>): Promise<TResult>` — Retains this exact handle until settlement, preserving its result or rejection. Cleanup dismisses pending tracked handles with the default `"dismiss"` reason. Tracking outside an active passive-effect lifetime immediately dismisses the supplied handle. Always await or catch the returned promise; keep the original handle for `dismiss()` and `whenRemoved()`.
+- `dismissAll(): void` — Dismisses pending tracked handles. Does not end the lifetime or invalidate its guards; later operations can be tracked. Repeated calls are safe for library handles.
+- `captureLifetime(): () => boolean` — Captures the current effect lifetime. Its guard is true while that lifetime remains active and permanently false after cleanup, including Strict Mode replay or effect reconnection. A guard captured before effect setup or after cleanup is false. Capture a fresh guard for new work.
+
+Use these methods in event handlers or passive effects registered after the hook, rather than during render or mount layout effects. Cleanup is immediate for launcher-owned work, unlike the Provider's deferred disposal. Strict Mode may dismiss an operation started in the first effect setup and open another in the next setup; check the captured guard to suppress stale outcomes. A Provider outside a hidden launcher can remain active while the launcher cleans up; the hook does not change Provider availability or guarantee recovery of a hidden Provider.
+
+The hook does not suppress callbacks automatically, manage customer-flow state, cancel application requests or wait for DOM removal, focus restoration or animations. Confirmation may intentionally notify a surviving parent after launcher cleanup; local UI and sequential flows can choose to check the captured guard.
+
 ### `createModal(options)`
 
 Creates a typed modal definition.
@@ -94,11 +108,11 @@ Creates a typed registry for opening modals by key. Bind it directly with `<Moda
 
 `open()` and `confirm()` return an awaitable `ModalHandle<TResult>`. Awaiting it yields the typed result; dismissal rejects with `ModalDismissError`. Keep the original handle: promises derived through `.then()`, `.catch()` and `.finally()` do not retain its members.
 
-| Member | Contract |
-| --- | --- |
-| `instanceId` | Identifies this instance inside its owning Provider lifecycle; it is not a globally routable identifier. |
-| `dismiss(reason?): void` | Dismisses this instance through its original Provider, even if another Provider later becomes the registry target. Handle the resulting rejection. Later settlement attempts have no effect. |
-| `whenRemoved(): Promise<void>` | Waits for this instance to leave its original lifecycle. Repeated calls share one promise, including calls after removal. Never rejects; result errors belong to the awaitable handle. |
+| Member                         | Contract                                                                                                                                                                                     |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `instanceId`                   | Identifies this instance inside its owning Provider lifecycle; it is not a globally routable identifier.                                                                                     |
+| `dismiss(reason?): void`       | Dismisses this instance through its original Provider, even if another Provider later becomes the registry target. Handle the resulting rejection. Later settlement attempts have no effect. |
+| `whenRemoved(): Promise<void>` | Waits for this instance to leave its original lifecycle. Repeated calls share one promise, including calls after removal. Never rejects; result errors belong to the awaitable handle.       |
 
 Settlement happens once, immediately. A positive `closeDelayMs` retains the closing instance until its removal timer runs. Provider disposal removes open and closing instances, resolves their removal promises and cancels timers; an already disposed lifecycle also produces completed removal. Removal does not guarantee a React DOM commit, focus restoration or animation completion, or that the Provider remains available for another operation.
 

@@ -230,41 +230,30 @@ This signal tracks lifecycle removal, not a React DOM commit, focus restoration,
 
 Helpers returning a promise propagate failures to their callers. At a detached event or command boundary, attach a terminal rejection handler to each derived chain: catching the original handle does not catch errors thrown by a separate `handle.then(...)` or `handle.finally(...)` chain. Keep result-processing work inside that error-handling boundary, and use a non-throwing error reporter for unexpected failures.
 
-A **calling component** unmounting does not automatically cancel a modal owned by a provider higher in the tree. The promise stays pending until that modal settles or its provider unmounts. If the caller owns the modal's lifetime, track every active handle and dismiss each in effect cleanup; also handle the resulting rejections:
+A **calling component** unmounting does not automatically cancel a modal owned by a provider higher in the tree. If the caller owns the operation lifetime, use `useOwnedModalHandles()` from the public package. This hook is unreleased; use the current workspace or its packed build until a compatible npm release is available.
 
 ```tsx
 import { isInstanceOf } from "@okyrychenko-dev/type-utils";
-import { useEffect, useRef } from "react";
 import {
   ModalDismissError,
   useModalManager,
-  type ModalHandle,
+  useOwnedModalHandles,
 } from "@okyrychenko-dev/react-modal-manager";
 
 function RenameLauncher() {
   const modal = useModalManager();
-  const pending = useRef(new Set<ModalHandle<RenameReportResult>>());
-
-  useEffect(() => {
-    const handles = pending.current;
-
-    return () => {
-      for (const handle of handles) {
-        handle.dismiss();
-      }
-      handles.clear();
-    };
-  }, []);
+  const owner = useOwnedModalHandles();
 
   async function handleClick() {
-    const handle = modal.open(renameReportModal, {
-      reportId: "report-1",
-      currentName: "Draft",
-    });
-    pending.current.add(handle);
-
+    const isActive = owner.captureLifetime();
     try {
-      const result = await handle;
+      const result = await owner.track(
+        modal.open(renameReportModal, {
+          reportId: "report-1",
+          currentName: "Draft",
+        }),
+      );
+      if (!isActive()) return;
       if (result.status === "renamed") {
         await renameReport({ reportId: "report-1", name: result.name });
       }
@@ -272,15 +261,17 @@ function RenameLauncher() {
       if (!isInstanceOf(error, ModalDismissError)) {
         console.error(error);
       }
-    } finally {
-      pending.current.delete(handle);
     }
   }
 
-  return <button onClick={handleClick}>Rename</button>;
+  return <button onClick={() => void handleClick()}>Rename</button>;
 }
 ```
 
-Each click adds a separate handle to the set. The `finally` block removes it when the flow completes, and unmount cleanup dismisses all remaining handles, including concurrent launches.
+`track` retains each handle until its result settles; launcher cleanup dismisses all pending tracked handles, including concurrent launches. Its returned promise preserves the result and rejection but does not retain handle members. Keep the original handle when individual dismissal or removal waiting is needed. `owner.dismissAll()` cancels current owned operations while permitting later work.
 
-This cleanup is optional: it expresses the caller's ownership policy. For operations that must survive the initiating component, keep the provider mounted and let another owner observe the result. React 18/19 Strict Mode effect replay is covered by the provider's lifecycle tests; provider teardown is deferred and canceled if the same owner immediately remounts.
+The captured lifetime guard stays invalid after cleanup even if effects reconnect with preserved state. Capture it before starting work and check it before local state updates or subsequent modal steps. Tracking outside an active passive-effect lifetime immediately dismisses the supplied handle. Call the hook's methods from event handlers or passive effects registered after the hook, not render or mount layout effects.
+
+This ownership is optional: operations that must survive the initiating launcher should remain untracked or be tracked by a longer-lived owner. Parent notification after cleanup can be intentional, so the hook does not suppress result handlers itself. It does not cancel application requests started after a modal result or await focus, DOM removal or animation completion.
+
+Provider lifetime remains separate: React 18/19 Strict Mode replay preserves the Provider's lifecycle through deferred disposal, while launcher ownership cleanup immediately dismisses its pending handles. A passive effect opening an owned modal during replay should capture a fresh lifetime guard per setup and handle the first setup's dismissal.

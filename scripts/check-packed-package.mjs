@@ -141,11 +141,11 @@ try {
   );
   writeFileSync(
     join(consumerRoot, "esm.mjs"),
-    'import { createModal } from "@okyrychenko-dev/react-modal-manager";\nif (typeof createModal !== "function") throw new Error("ESM export unavailable");\n',
+    'import { createModal, useOwnedModalHandles } from "@okyrychenko-dev/react-modal-manager";\nif (typeof createModal !== "function" || typeof useOwnedModalHandles !== "function") throw new Error("ESM export unavailable");\n',
   );
   writeFileSync(
     join(consumerRoot, "cjs.cjs"),
-    'const { createModal } = require("@okyrychenko-dev/react-modal-manager");\nif (typeof createModal !== "function") throw new Error("CommonJS export unavailable");\n',
+    'const { createModal, useOwnedModalHandles } = require("@okyrychenko-dev/react-modal-manager");\nif (typeof createModal !== "function" || typeof useOwnedModalHandles !== "function") throw new Error("CommonJS export unavailable");\n',
   );
   writeFileSync(
     join(consumerRoot, "bundle-entry.js"),

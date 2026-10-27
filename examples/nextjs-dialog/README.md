@@ -1,55 +1,60 @@
 # Next.js + Radix Dialog adoption
 
-This runnable App Router example installs the published library from **npm**, uses a
-server-rendered route with a client provider, and supplies a custom renderer plus
-custom confirmation surface. It uses only public package imports. Next.js, React DOM
-and Radix are dependencies of this example, not of the modal-manager package.
+This App Router example uses the current packed library, a server-rendered route,
+and a client Provider with a custom Radix renderer and confirmation surface. All
+library imports use the public package entry point. Next.js, React DOM and Radix
+remain example dependencies.
 
 From the repository root, with Node 22 and pnpm 11.21.0:
 
 ```sh
-pnpm --dir examples/nextjs-dialog install --frozen-lockfile
-pnpm --dir examples/nextjs-dialog run dev
+pnpm install --frozen-lockfile
+pnpm run preview:nextjs
 ```
 
-Open http://localhost:3000. Open a confirmation, confirm, cancel, dismiss its retained
-handle, or unmount its launcher while it is open. The visible status shows each
-outcome. Launcher cleanup dismisses all its pending handles; each promise chain
-handles expected dismissal and reports unexpected errors.
+The preview builds and packs the current library, creates a temporary copy of this
+application, redirects its modal-manager dependency to that tarball, and preserves
+all external lockfile resolutions. It installs with `--frozen-lockfile`, typechecks,
+builds and starts a production server. Open the printed loopback URL. Ctrl+C stops
+the server and removes the temporary copy. The checked-in manifest and lockfile
+remain unchanged. This preview does not require Playwright Chromium or npm
+publication and does not provide development hot reload.
 
-For production use, run `pnpm --dir examples/nextjs-dialog run build` followed by
-`pnpm --dir examples/nextjs-dialog run start`. To check types independently, run
-`pnpm --dir examples/nextjs-dialog run typecheck`. The example manifest and lockfile pin the published package and framework
-dependencies. No local package archive is needed for ordinary use.
-
-The committed dependency remains the published **0.2.0** baseline. The repository prepares **0.3.0**; its default packed smoke verifies that candidate without requiring npm publication. Snippets use the current workspace version. Update this standalone npm pin and lockfile after 0.3.0 is published, rather than declaring an unavailable registry version.
+The source now imports the unreleased public `useOwnedModalHandles` hook. The
+committed npm pin remains **0.2.0** as lockfile input for the packed fixture; that
+version cannot run this updated source directly. Use the packed commands until a
+compatible version is published and the pin and lockfile can be updated together.
+Do not substitute an unpublished registry version.
+`pnpm run lint:nextjs` uses this example's `eslint.config.mjs` and
+`tsconfig.lint.json` to check consumers against the built workspace declarations;
+the packed smoke independently checks the actual installed artifact. To develop with hot reload,
+install a compatible packed artifact in an isolated copy of the example and run
+its existing `dev` command.
 
 ## Unattended verification
 
 ```sh
 pnpm exec playwright install chromium
 pnpm run test:nextjs
-# Run the same browser scenarios against the published dependency:
-pnpm run test:nextjs --published
 ```
 
-The smoke command builds and packs the library, copies this example to a temporary
-directory, redirects only its copied manifest and package resolution to the fresh
-tarball, preserves external lockfile entries, installs with
-`--frozen-lockfile`, typechecks, builds with Webpack, starts a production
-server on an available loopback port, and exercises Chromium. It checks server HTML,
-hydration/browser errors and unhandled rejections, one dialog shell, confirm/cancel,
-Escape/outside dismissal policies, safe initial focus, individual handle dismissal, launcher cleanup and reopening. It also checks
-focus entry, Tab containment, background pointer blocking and focus restoration,
-including a removed opener and connected openers that become disabled, hidden,
-inert, aria-hidden or hidden through CSS. Browser/server processes and temporary
-files are cleaned up after success or failure. CI runs this command on Node 22
-alongside the existing Storybook browser verification.
+The smoke performs the same packed installation and production build as the
+preview, then exercises Chromium. It checks server HTML, hydration errors and
+unhandled rejections, confirmation answers and dismissal policies, initial focus,
+individual cancellation, launcher cleanup and reopening. It also checks focus
+containment/restoration, unavailable openers, sequential and delayed customer
+flows, and local render-error recovery. Processes and temporary files are cleaned
+up after success or failure. CI runs it on Node 22.
 
-The exercised baseline is Next.js 16.4.2, React/React DOM 19.3.1 and Radix Dialog
-1.3.1, on Node 22.20.0. The command prints its actual versions. This is one production
-integration smoke check, not exhaustive support across framework versions, browsers,
-bundlers or assistive technologies. No fonts or other assets are fetched at build time.
+`pnpm run test:nextjs --published` is retained for future compatible npm pins. The
+current pinned baseline lacks the hook, so that mode stops with an explicit
+availability error before building; it does not silently fall back to copied
+source or treat the current source as published.
+
+The fixture pins Next.js 16.4.2, React/React DOM 19.3.1 and Radix Dialog 1.3.1.
+Verification prints actual versions. No fonts or other assets are fetched at
+build time. This production smoke is not exhaustive accessibility certification
+or support for every framework/browser combination.
 
 ## Ownership and accessibility
 
@@ -139,8 +144,20 @@ that survives removal. A boundary above the Provider that unmounts it instead
 triggers existing `provider-unmount` dismissal of every pending operation in that
 Provider. The core adds no automatic render-error rejection policy.
 
-The launchers use `manager.open(confirmation, input)` when they need an owned
-confirmation handle. This works with the published `0.2.0` contract, whose
-`manager.confirm()` returns a plain Promise, as well as the current checkout.
-The committed example always declares an npm version; the packed smoke changes
-only its disposable copy and never writes a tarball dependency back to the example.
+## Retained-handle ownership
+
+The confirmation, recovery and customer-flow launchers import
+`useOwnedModalHandles` directly from the public modal-manager package; no ownership
+source needs to be copied. `track(handle)` preserves the result or rejection and
+forgets settled handles. `dismissAll()` dismisses pending retained handles;
+launcher teardown also dismisses them automatically. Keep the original handle for
+individual cancellation and `whenRemoved()`; tracking does not wait for removal,
+animation or focus restoration.
+
+Outcome policy stays with the caller: the confirmation launcher reports dismissal
+to its surviving parent after unmount. The customer flow prevents concurrent runs
+and captures `const isActive = owner.captureLifetime()` before starting. It checks
+that guard before updating local state or opening another step. The scope-isolation
+snippet similarly suppresses stale local outcomes. Captured guards stay invalid
+after cleanup even if effects reconnect. Use the hook from event handlers or
+passive effects; tracking after cleanup immediately dismisses the supplied handle.

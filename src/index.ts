@@ -5,8 +5,8 @@ export type {
   ConfirmModalVariant,
 } from "./confirm";
 export { ModalDismissError, ModalRejectError } from "./errors";
-export { useModalManager } from "./hooks";
-export type { ModalHandle, ModalManager } from "./hooks";
+export { useModalManager, useOwnedModalHandles } from "./hooks";
+export type { ModalHandle, ModalManager, OwnedModalHandles } from "./hooks";
 export { ModalProvider } from "./provider";
 export type { ModalProviderProps } from "./provider";
 export { createModal, createModalRegistry } from "./registry";

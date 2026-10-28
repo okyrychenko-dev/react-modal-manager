@@ -46,7 +46,9 @@ export async function renameFromAction(reportId: string, currentName: string) {
 
 The registry key is type-checked, and TypeScript infers the required input and the returned result from the modal registered under that key. `modals.open` from outside the React tree targets the most recently mounted `ModalProvider` bound to that registry (providers form a LIFO stack and fall back on unmount).
 
-Before a provider binds the registry, `modals.isReady()` is `false` and registry operations throw. Binding happens in a client effect, so a registry is intentionally unbound during server rendering.
+Before a provider binds the registry, `modals.isReady()` is `false` and registry operations throw. Binding happens in a client layout effect, so a registry is intentionally unbound during server rendering and render itself. Ordinary descendant `useEffect` callbacks can open operations on mount, including Strict Mode effect replay. Descendant `useLayoutEffect` callbacks have no readiness guarantee: they can run before the Provider binding or lifecycle reconnection. Open in `useEffect` or an event handler instead; no calls are queued.
+
+A shared registry routes by attachment order, not by the caller's React context. On a simultaneous nested mount, the outer Provider's binding attaches after the inner one and wins. An inner Provider mounted or reconnected later becomes the newest binding. Unbinding restores the previous live binding; configuration updates preserve precedence. Prefer independent registries when callers must target their own scope, or `useModalManager()` for the nearest Provider.
 
 ## Provider Scope
 
@@ -74,6 +76,12 @@ function App() {
   );
 }
 ```
+
+### Activity visibility and operation lifetime
+
+On React versions supporting `Activity`, hiding a boundary containing a `ModalProvider` disconnects its effects and registry binding. Pending operations reject with `ModalDismissError("provider-unmount")`; settled operations keep their result, and all `whenRemoved()` waiters resolve as retained content and removal timers are cleared. Cleanup is deferred by one microtask so immediate Strict Mode effect replay preserves operations. Hiding and revealing in separate commits with cleanup allowed to finish ends the old operation lifetime.
+
+Revealing reconnects the Provider with an empty lifecycle and working subscriptions. New `open()` and `confirm()` operations work; old handles remain settled and cannot dismiss new operations. Actual unmount has the same cleanup policy and leaves the registry unbound (or routing to another live Provider). This does not promise DOM, animation or focus completion. Activity coverage applies only where React provides Activity; React 18 continues to support ordinary mount, Strict Mode and unmount.
 
 ### Rendering placement and React context
 

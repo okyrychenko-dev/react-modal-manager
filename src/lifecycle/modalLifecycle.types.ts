@@ -32,6 +32,7 @@ export interface ModalLifecycleObservation {
 }
 
 export interface ModalLifecycle extends ModalLifecycleObservation {
+  resume: () => void;
   closeAll: (reason?: ModalDismissReason) => void;
   dispose: () => void;
   dismiss: (instanceId: ModalInstanceId, reason?: ModalDismissReason) => void;

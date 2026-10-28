@@ -15,6 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Import handle ownership from the public package in consumer examples instead of copying recipe source. Preview the Next.js example against a temporary packed build with `pnpm run preview:nextjs`; the pinned npm baseline does not yet provide the new hook.
 
+### Fixed
+
+- Restore Provider operation and subscriptions after React Activity hide/reveal. Hiding settles pending operations with `provider-unmount`, clears retained content and resolves removal waiting; reveal accepts new operations without reviving old handles.
+- Bind registries before descendant passive mount effects, including Strict Mode replay, while preserving shared-registry precedence and configuration updates. Layout-effect opening remains unsupported.
+
 ## [0.3.0] - 2026-10-20
 
 ### Added

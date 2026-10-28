@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { createModalLifecycle } from "../lifecycle/modalLifecycle";
-import type { ModalLifecycle } from "../lifecycle/modalLifecycle.types";
+import { createModalLifecycle } from "../lifecycle";
+import { useIsomorphicLayoutEffect } from "./useIsomorphicLayoutEffect";
+import type { ModalLifecycle } from "../lifecycle";
 
 export function useModalLifecycleOwner(closeDelayMs: number): ModalLifecycle {
   const [lifecycle] = useState(() => createModalLifecycle({ closeDelayMs }));
@@ -9,6 +10,12 @@ export function useModalLifecycleOwner(closeDelayMs: number): ModalLifecycle {
   useEffect(() => {
     lifecycle.setCloseDelayMs(closeDelayMs);
   }, [closeDelayMs, lifecycle]);
+
+  // Resume before descendant passive effects. Disposal stays passive because
+  // Suspense can replay layout effects while keeping subscriptions connected.
+  useIsomorphicLayoutEffect(() => {
+    lifecycle.resume();
+  }, [lifecycle]);
 
   useEffect(() => {
     mountGeneration.current += 1;

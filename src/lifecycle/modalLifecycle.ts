@@ -316,6 +316,11 @@ export function createModalLifecycle(
   };
 
   return {
+    // Disposal has already cleared operations, timers and removal waiters.
+    // Reconnection keeps the monotonic IDs so old handles cannot target new work.
+    resume: () => {
+      disposed = false;
+    },
     closeAll,
     dispose,
     dismiss,

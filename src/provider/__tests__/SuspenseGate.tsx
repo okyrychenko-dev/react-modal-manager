@@ -1,11 +1,4 @@
-import type { ReactNode } from "react";
+import { lazy } from "react";
 
-const pending = new Promise<never>(() => undefined);
-
-export function SuspenseGate({ suspend }: { suspend: boolean }): ReactNode {
-  if (suspend) {
-    // eslint-disable-next-line @typescript-eslint/only-throw-error -- React Suspense uses thrown promises.
-    throw pending;
-  }
-  return null;
-}
+// Keep the fallback visible until the test removes this pending lazy component.
+export const SuspenseGate = lazy(() => new Promise<never>(() => undefined));

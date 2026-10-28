@@ -19,7 +19,7 @@ describe("ModalProvider effect readiness", () => {
     const application = (suspend: boolean) => (
       <Suspense fallback={loading}>
         <ModalProvider registry={registry}>
-          <SuspenseGate suspend={suspend} />
+          {suspend && <SuspenseGate />}
         </ModalProvider>
       </Suspense>
     );

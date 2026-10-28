@@ -1,21 +1,29 @@
 import { expect } from "playwright/test";
 
 export async function verifyCustomerFlow(page) {
-  await page
-    .getByRole("button", { name: "Start customer flow", exact: true })
-    .click();
-  await page.getByRole("button", { name: "Select Ada Lovelace" }).click();
-  await page.getByLabel("Customer name").fill("Ada Byron");
-  await page.getByRole("button", { name: "Review changes" }).click();
-  await expect(
-    page.getByRole("dialog", { name: "Save Ada Byron?" }),
-  ).toBeVisible();
-  await page
-    .getByRole("button", { name: "Save customer", exact: true })
-    .click();
-  await expect(page.getByTestId("flow-outcome")).toHaveText("Saved: Ada Byron");
-  await expect(page.getByRole("dialog")).toHaveCount(0);
-  await expect(page.locator("#customer-flow-start")).toBeFocused();
+  for (const { customer, editedName } of [
+    { customer: "Ada Lovelace", editedName: "Ada Byron" },
+    { customer: "Grace Hopper", editedName: "Amazing Grace" },
+  ]) {
+    await page
+      .getByRole("button", { name: "Start customer flow", exact: true })
+      .click();
+    await page.getByRole("button", { name: `Select ${customer}` }).click();
+    await expect(page.getByLabel("Customer name")).toHaveValue(customer);
+    await page.getByLabel("Customer name").fill(editedName);
+    await page.getByRole("button", { name: "Review changes" }).click();
+    await expect(
+      page.getByRole("dialog", { name: `Save ${editedName}?` }),
+    ).toBeVisible();
+    await page
+      .getByRole("button", { name: "Save customer", exact: true })
+      .click();
+    await expect(page.getByTestId("flow-outcome")).toHaveText(
+      `Saved: ${editedName}`,
+    );
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(page.locator("#customer-flow-start")).toBeFocused();
+  }
 }
 
 export async function verifyCustomerCancellation(page) {

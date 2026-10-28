@@ -1,6 +1,7 @@
-import { type ReactNode, useEffect, useRef } from "react";
+import { type ReactNode, useRef } from "react";
 import { useModalManager } from "../hooks";
 import { attachModalRegistry } from "../registry/createModalRegistry";
+import { useIsomorphicLayoutEffect } from "./useIsomorphicLayoutEffect";
 import type { ModalRegistryAttachable } from "../registry/createModalRegistry";
 
 interface ModalRegistryBinderProps {
@@ -16,11 +17,11 @@ export function ModalRegistryBinder(
 
   const managerRef = useRef(manager);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     managerRef.current = manager;
   }, [manager]);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const unbind = attachModalRegistry(registry, () => managerRef.current);
 
     return () => {

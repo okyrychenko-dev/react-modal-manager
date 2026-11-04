@@ -95,6 +95,7 @@ async function ready(url) {
 async function verifyBrowser(url) {
   browser = await chromium.launch();
   const page = await browser.newPage();
+  page.setDefaultTimeout(10_000);
   let expectedRenderErrors = 0;
   let verifyingRecovery = false;
   page.on("pageerror", (error) => failures.push(error.message));

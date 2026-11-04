@@ -32,23 +32,6 @@ To develop with hot reload,
 install a compatible packed artifact in an isolated copy of the example and run
 its existing `dev` command.
 
-## Running in production
-
-With Node 22 and pnpm 11.21.0, build a separate copy using the library tarball
-until a compatible npm release is available:
-
-```sh
-# In the repository root:
-pnpm run build
-pnpm pack --out /absolute/deployment/path/react-modal-manager.tgz
-cp -R examples/nextjs-dialog /absolute/deployment/path/app
-cd /absolute/deployment/path/app
-pnpm add --workspace-root ../react-modal-manager.tgz --save-exact
-pnpm run check
-pnpm run build
-pnpm run start --hostname 0.0.0.0 --port 3000
-```
-
 ## Unattended verification
 
 ```sh

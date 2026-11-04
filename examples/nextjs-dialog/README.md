@@ -34,15 +34,8 @@ its existing `dev` command.
 
 ## Running in production
 
-Use a host that supports Next.js with Node 22 and pnpm 11.21.0. The demo runs
-without a backend or credentials and doesn't save customer data between runs.
-You can select a customer, edit their name and confirm the change, or cancel at
-any step. Each new flow starts with the original data. The recovery example lets
-you open a broken dialog, dismiss it and try again.
-
-The example's npm pin doesn't include the new ownership hook yet. Until a
-compatible release is published, build the library and install its tarball in a
-separate copy of the app:
+With Node 22 and pnpm 11.21.0, build a separate copy using the library tarball
+until a compatible npm release is available:
 
 ```sh
 # In the repository root:
@@ -55,20 +48,6 @@ pnpm run check
 pnpm run build
 pnpm run start --hostname 0.0.0.0 --port 3000
 ```
-
-Start with an empty deployment directory. Leave out local `node_modules`, `.next`
-and TypeScript cache files when copying the app. Keep the tarball next to the app,
-along with the updated `package.json` and lockfile, so you can reinstall with
-`pnpm install --frozen-lockfile`.
-
-On the host, use `pnpm run build` to build and `pnpm run start` to serve the app.
-Next.js reads the port from `PORT` if you don't pass `--port`. Keep the build output
-and dependencies on the server, and configure HTTPS through your host or reverse
-proxy. These instructions run the Next.js server; they don't produce a static export.
-
-Run the browser checks below before deploying. The demo hasn't been deployed yet,
-so there is no public URL. You can use the full customer flow with exit visuals
-turned off.
 
 ## Unattended verification
 

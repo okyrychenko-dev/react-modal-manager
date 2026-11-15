@@ -7,6 +7,7 @@ import type {
   ModalComponentProps,
 } from "@okyrychenko-dev/react-modal-manager";
 import type { ReactNode } from "react";
+import type { InteractOutsideEvent } from "./PortableConfirmationContent.types";
 
 export function PortableConfirmationContent(
   props: ModalComponentProps<ConfirmModalParams, ConfirmModalResult>,
@@ -37,8 +38,19 @@ export function PortableConfirmationContent(
   }
 
   function handleDismissInteraction(event: Event): void {
-    if (!dismissible) {
-      event.preventDefault();
+    event.preventDefault();
+
+    if (dismissible) {
+      close({ confirmed: false, reason: "dismiss" });
+    }
+  }
+
+  function handleInteractOutside(event: InteractOutsideEvent): void {
+    if (
+      !event.defaultPrevented &&
+      event.detail.originalEvent.type === "pointerdown"
+    ) {
+      handleDismissInteraction(event);
     }
   }
 
@@ -54,7 +66,7 @@ export function PortableConfirmationContent(
     <PortableDialogSurface
       onOpenAutoFocus={handleOpenAutoFocus}
       onEscapeKeyDown={handleDismissInteraction}
-      onInteractOutside={handleDismissInteraction}
+      onInteractOutside={handleInteractOutside}
     >
       <Dialog.Title>{title}</Dialog.Title>
       <Dialog.Description asChild>

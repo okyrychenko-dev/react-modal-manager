@@ -57,7 +57,7 @@ export async function verifyCustomerCancellation(page) {
         await page.getByRole("button", { name, exact: true }).click();
       }
       let expected = `Cancelled: ${step}`;
-      if (escape) {
+      if (escape && step !== "confirmation") {
         expected = "Flow dismissed: dismiss";
       }
       await expect(outcome).toHaveText(expected);

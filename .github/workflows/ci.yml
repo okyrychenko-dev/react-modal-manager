@@ -85,6 +85,10 @@ jobs:
         if: matrix.node == 22
         run: pnpm exec playwright install --with-deps chromium
 
+      - name: Verify portable React and Radix in Chromium
+        if: matrix.node == 22
+        run: pnpm run test:portable-browser
+
       - name: Verify packed Next.js and Radix adoption
         if: matrix.node == 22
         run: pnpm run test:nextjs

@@ -1,8 +1,9 @@
 import {
+  ModalDismissError,
   ModalProvider,
   createModalRegistry,
 } from "@okyrychenko-dev/react-modal-manager";
-import { assertDefined } from "@okyrychenko-dev/type-utils";
+import { assertDefined, isDefined } from "@okyrychenko-dev/type-utils";
 import {
   act,
   fireEvent,
@@ -61,7 +62,7 @@ describe("portable React confirmation", () => {
     fireEvent.keyDown(dialog, { key: "Escape" });
 
     await waitFor(() =>
-      expect(screen.getByRole("status").textContent).toBe("Dismissed: dismiss"),
+      expect(screen.getByRole("status").textContent).toBe("Cancelled: dismiss"),
     );
     await waitFor(() => expect(document.activeElement).toBe(launcher));
   });
@@ -111,7 +112,7 @@ describe("portable React confirmation", () => {
     });
   });
 
-  it.each([true, false])(
+  it.each([undefined, true, false])(
     "should respect dismissible=%s for outside interaction and allow owner dismissal",
     async (dismissible) => {
       const registry = createModalRegistry({});
@@ -149,22 +150,98 @@ describe("portable React confirmation", () => {
         ),
       );
       assertDefined(handle);
-      const rejected = expect(handle).rejects.toMatchObject({
-        reason: "dismiss",
-      });
+
+      let outcome: Promise<void>;
+
+      if (dismissible === false) {
+        outcome = expect(handle).rejects.toBeInstanceOf(ModalDismissError);
+      } else {
+        outcome = expect(handle).resolves.toEqual({
+          confirmed: false,
+          reason: "dismiss",
+        });
+      }
 
       fireEvent.pointerDown(document.body, { pointerType: "mouse", button: 0 });
       fireEvent.pointerUp(document.body, { pointerType: "mouse", button: 0 });
       fireEvent.click(document.body);
 
-      if (!dismissible) {
+      if (dismissible === false) {
         expect(screen.getByRole("dialog")).toBeDefined();
         const ownedHandle = handle;
         act(() => ownedHandle.dismiss());
       }
 
-      await rejected;
+      await outcome;
       await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    },
+  );
+
+  it.each([undefined, true, false])(
+    "should preserve typed Escape results and owner cancellation with dismissible=%s",
+    async (dismissible) => {
+      const registry = createModalRegistry({});
+
+      render(
+        <ModalProvider
+          registry={registry}
+          renderer={PortableDialogRenderer}
+          confirmModal={portableConfirmation}
+        >
+          {null}
+        </ModalProvider>,
+      );
+
+      const input = { title: "Typed decision" };
+
+      let params: Parameters<typeof registry.confirm>[0] = input;
+
+      if (isDefined(dismissible)) {
+        params = { ...input, dismissible };
+      }
+
+      let handle: Optional<ReturnType<typeof registry.confirm>>;
+
+      act(() => {
+        handle = registry.confirm(params);
+      });
+
+      assertDefined(handle);
+
+      const result = handle;
+      let outcome: Promise<void>;
+
+      if (dismissible === false) {
+        outcome = expect(result).rejects.toBeInstanceOf(ModalDismissError);
+      } else {
+        outcome = expect(result).resolves.toEqual({
+          confirmed: false,
+          reason: "dismiss",
+        });
+      }
+
+      fireEvent.keyDown(await screen.findByRole("dialog"), { key: "Escape" });
+
+      if (dismissible === false) {
+        expect(screen.getByRole("dialog")).toBeDefined();
+        act(() => result.dismiss());
+      }
+
+      await outcome;
+
+      await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+
+      act(() => {
+        handle = registry.confirm(params);
+      });
+
+      assertDefined(handle);
+
+      const reopened = handle;
+
+      fireEvent.click(await screen.findByRole("button", { name: "Confirm" }));
+
+      await expect(reopened).resolves.toEqual({ confirmed: true });
     },
   );
 
@@ -226,6 +303,7 @@ describe("portable React confirmation", () => {
     "should preserve top dialog focus when the %s dialog in a three-dialog stack is dismissed",
     async (dismissedTitle) => {
       const registry = createModalRegistry({});
+
       render(
         <ModalProvider
           registry={registry}
@@ -235,6 +313,7 @@ describe("portable React confirmation", () => {
           <ConfirmationButton />
         </ModalProvider>,
       );
+
       let lower: Optional<ReturnType<typeof registry.confirm>>;
       let middle: Optional<ReturnType<typeof registry.confirm>>;
       let upper: Optional<ReturnType<typeof registry.confirm>>;
@@ -250,6 +329,7 @@ describe("portable React confirmation", () => {
       act(() => {
         middle = registry.confirm({ title: "Middle decision" });
       });
+
       const middleDialog = await screen.findByRole("dialog", {
         name: "Middle decision",
       });
@@ -327,7 +407,7 @@ describe("portable React confirmation", () => {
     },
   );
 
-  it("should restore focus to the topmost remaining dialog after the focused dialog is removed", async () => {
+  it("should resolve top Escape dismissal and preserve the remaining stack", async () => {
     const registry = createModalRegistry({});
 
     render(
@@ -376,13 +456,20 @@ describe("portable React confirmation", () => {
 
     vi.useFakeTimers();
 
-    act(() => upper.dismiss());
+    fireEvent.keyDown(screen.getByRole("dialog", { name: "Upper decision" }), {
+      key: "Escape",
+    });
 
     await act(async () => {
       await vi.runOnlyPendingTimersAsync();
     });
 
     vi.useRealTimers();
+
+    await expect(upper).resolves.toEqual({
+      confirmed: false,
+      reason: "dismiss",
+    });
 
     const middle = screen.getByRole("dialog", { name: "Middle decision" });
     const restoredFocus = document.activeElement;

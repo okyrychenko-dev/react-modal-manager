@@ -78,11 +78,7 @@ export function ConfirmModal(
   };
 
   const handleTab = (event: KeyboardEvent<HTMLElement>): void => {
-    if (!isDefined(dialogRef.current)) {
-      return;
-    }
-
-    const focusable = getFocusableElements(dialogRef.current);
+    const focusable = getFocusableElements(event.currentTarget);
 
     if (!isNonEmptyArray(focusable)) {
       return;

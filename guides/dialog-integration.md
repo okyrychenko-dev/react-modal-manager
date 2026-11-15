@@ -4,7 +4,11 @@
 
 The built-in confirmation is unstyled reference UI, without a portal, overlay or background isolation. For a complete application shell, start with the [runnable Next.js and Radix example](../examples/nextjs-dialog/README.md), which composes one `DialogSurface` per content component under a shared Radix root/portal renderer. The confirmation passes dismissal and initial-focus policy directly to that surface. The recipes below are composition guidance; shadcn, Tailwind and form-library variations are not separately validated application fixtures.
 
-`modal.confirm()` (and `registry.confirm()`) opens the built-in confirmation modal and normally resolves to a typed, discriminated-union result. The Confirm button returns `{ confirmed: true }`; Cancel returns `{ confirmed: false, reason: "cancel" }`; Escape and the built-in Dismiss button return `{ confirmed: false, reason: "dismiss" }` when dismissal is allowed. These UI actions call `close(result)`, not the lifecycle `dismiss()`. Programmatic dismissal, `closeAll()`, and provider unmount still reject with `ModalDismissError`.
+`modal.confirm()` and `registry.confirm()` open the built-in confirmation and return a typed result. Confirm returns `{ confirmed: true }`; Cancel returns `{ confirmed: false, reason: "cancel" }`.
+
+When dismissal is allowed, Escape and the built-in Dismiss button return `{ confirmed: false, reason: "dismiss" }`. The Radix recipes return the same result for Escape and clicking outside. The built-in confirmation does not close when you click outside.
+
+These actions call `close(result)`. Calling `dismiss()` or `closeAll()`, or unmounting the Provider, rejects with `ModalDismissError`.
 
 ```tsx
 import { isInstanceOf } from "@okyrychenko-dev/type-utils";

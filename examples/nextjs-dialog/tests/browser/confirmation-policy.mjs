@@ -27,6 +27,10 @@ export async function verifyConfirmationPolicy(page) {
     await page.getByLabel("Dismissal policy").selectOption(policy);
     await open.click();
     await expect(dialog).toBeVisible();
+    await page
+      .locator(".overlay")
+      .click({ button: "right", position: { x: 5, y: 5 } });
+    await expect(dialog).toBeVisible();
     await page.locator(".overlay").click({ position: { x: 5, y: 5 } });
 
     if (policy === "disabled") {
@@ -41,10 +45,10 @@ export async function verifyConfirmationPolicy(page) {
         .click();
       await expectDialogOutcome(page, "Dismissed: dismiss", open);
     } else {
-      await expectDialogOutcome(page, "Dismissed: dismiss", open);
+      await expectDialogOutcome(page, "Cancelled: dismiss", open);
       await open.click();
       await page.keyboard.press("Escape");
-      await expectDialogOutcome(page, "Dismissed: dismiss", open);
+      await expectDialogOutcome(page, "Cancelled: dismiss", open);
     }
   }
 

@@ -16,15 +16,15 @@ React and React DOM must be installed at matching versions. For TypeScript, inst
 
 Copy these files from [`examples/snippets`](../examples/snippets/) into the same directory in your application, retaining their names:
 
-| File | Responsibility |
-| --- | --- |
-| [PortableReactExample.tsx](../examples/snippets/PortableReactExample.tsx) | Configures one Provider and renders the caller |
-| [PortableDialogRenderer.tsx](../examples/snippets/PortableDialogRenderer.tsx) | Controlled Radix root, portal and overlay; routes dismissal to the owning instance |
-| [PortableDialogSurface.tsx](../examples/snippets/PortableDialogSurface.tsx) | Shared Radix content and focus restoration |
-| [PortableConfirmationContent.tsx](../examples/snippets/PortableConfirmationContent.tsx) | Title, description, dismissal policy, initial focus and explicit answers |
-| [portable-confirmation.constants.ts](../examples/snippets/portable-confirmation.constants.ts) | Typed confirmation definition |
-| [ConfirmationButton.tsx](../examples/snippets/ConfirmationButton.tsx) | Invokes confirmation and displays its outcome |
-| [portable-react.css](../examples/snippets/portable-react.css) | Overlay, centered content, action spacing and focus outline |
+| File                                                                                          | Responsibility                                                                     |
+| --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| [PortableReactExample.tsx](../examples/snippets/PortableReactExample.tsx)                     | Configures one Provider and renders the caller                                     |
+| [PortableDialogRenderer.tsx](../examples/snippets/PortableDialogRenderer.tsx)                 | Controlled Radix root, portal and overlay; routes dismissal to the owning instance |
+| [PortableDialogSurface.tsx](../examples/snippets/PortableDialogSurface.tsx)                   | Shared Radix content and focus restoration                                         |
+| [PortableConfirmationContent.tsx](../examples/snippets/PortableConfirmationContent.tsx)       | Title, description, dismissal policy, initial focus and explicit answers           |
+| [portable-confirmation.constants.ts](../examples/snippets/portable-confirmation.constants.ts) | Typed confirmation definition                                                      |
+| [ConfirmationButton.tsx](../examples/snippets/ConfirmationButton.tsx)                         | Invokes confirmation and displays its outcome                                      |
+| [portable-react.css](../examples/snippets/portable-react.css)                                 | Overlay, centered content, action spacing and focus outline                        |
 
 Import the stylesheet once and render the example from your existing application:
 
@@ -52,7 +52,7 @@ On close, the surface preserves focus in another open dialog or returns it to th
 
 The caller passes a title and description to `modal.confirm()`. You can also pass `confirmText`, `cancelText`, `variant` and `dismissible`:
 
-- `dismissible` defaults to `true`: Escape and outside interaction reject with `ModalDismissError`, reason `"dismiss"`. Set it to `false` to prevent those two interactions from dismissing.
+- `dismissible` defaults to `true`: Escape and clicking outside resolve `{ confirmed: false, reason: "dismiss" }`. Set it to `false` to block both actions.
 - Explicit Cancel still resolves `{ confirmed: false, reason: "cancel" }`; Confirm resolves `{ confirmed: true }`.
 - `variant: "danger"` initially focuses Cancel; other variants initially focus Confirm. The variant controls initial focus here; add your own design-system colors if needed.
 - Owner-bound `handle.dismiss()` remains available even for non-dismissible confirmations. Provider disposal and `closeAll()` also reject with their documented dismissal reasons.
@@ -63,4 +63,8 @@ Unmounting the caller alone does not cancel a Provider-owned operation. If a lau
 
 ## Verification boundaries
 
-`pnpm run check:examples` exercises this portable composition with the public package: one rendered dialog, typed Confirm/Cancel outcomes, Escape dismissal, initial focus, focus restoration (including an unavailable opener and stacked dialogs), outside-interaction policy, owner dismissal and a required dangerous decision. The existing packed production Chromium harness (`pnpm run test:nextjs`) verifies the original Radix composition's outside-interaction policy and larger flows. The portable snippet tests run in a DOM emulator and do not establish browser-wide accessibility certification.
+- `pnpm run check:examples` runs type checks and DOM tests for results, dismissal, focus and stacked dialogs.
+- `pnpm run test:portable-browser` tests the production recipe in Chromium: dismissal settings, results, reopening and stacked dialogs.
+- `pnpm run test:nextjs` tests the packed package in the Next.js example.
+
+These tests do not cover all accessibility requirements.

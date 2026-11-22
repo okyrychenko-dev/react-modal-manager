@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- In the React and Next.js Radix examples, Escape and clicking outside now resolve `{ confirmed: false, reason: "dismiss" }`, matching the built-in confirmation. If you use an older recipe, move this handling from `catch` to the result branch. Calling `handle.dismiss()` still rejects with `ModalDismissError`.
+
 - Import handle ownership from the public package in consumer examples instead of copying recipe source. Preview the Next.js example against a temporary packed build with `pnpm run preview:nextjs`; the pinned npm baseline does not yet provide the new hook.
 
 ### Fixed

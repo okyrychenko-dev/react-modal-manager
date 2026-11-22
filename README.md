@@ -87,7 +87,7 @@ export function ConfirmationButton(): ReactNode {
 | --------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
 | Confirm in either implementation                                      | Resolves `{ confirmed: true }`                                                      |
 | Cancel in the Radix example or built-in confirmation                  | Resolves `{ confirmed: false, reason: "cancel" }`                                   |
-| Escape or outside interaction in the Radix example (when dismissible) | Rejects with `ModalDismissError`, reason `"dismiss"`                                |
+| Escape or outside interaction in the Radix example (when dismissible) | Resolves `{ confirmed: false, reason: "dismiss" }`                                  |
 | Escape or Dismiss button in built-in reference confirmation           | Resolves `{ confirmed: false, reason: "dismiss" }` when dismissible                 |
 | `handle.dismiss()` or manager/registry `dismiss(id)`                  | Rejects with `ModalDismissError`, default reason `"dismiss"`                        |
 | `closeAll()`                                                          | Rejects pending operations with reason `"close-all"`                                |

@@ -110,6 +110,55 @@ describe("ConfirmModal a11y", () => {
     lower.unmount();
   });
 
+  it("should use a remaining control when the opener cannot receive focus", () => {
+    const lower = renderConfirmModal({
+      title: "Lower",
+      confirmText: "Lower action",
+      cancelText: "Keep lower",
+    });
+    const opener = screen.getByRole("button", { name: "Lower action" });
+    const upper = renderConfirmModal({ title: "Upper" });
+
+    const ignoreFocus = vi.fn<VoidFunction>();
+
+    const focus = vi.spyOn(opener, "focus").mockImplementation(ignoreFocus);
+
+    try {
+      upper.unmount();
+
+      expect(screen.getByRole("button", { name: "Keep lower" })).toHaveFocus();
+    } finally {
+      focus.mockRestore();
+      lower.unmount();
+    }
+  });
+
+  it("should try the next remaining control when the first cannot receive focus", () => {
+    const lower = renderConfirmModal({
+      title: "Lower",
+      confirmText: "Lower action",
+      cancelText: "Keep lower",
+    });
+    const opener = screen.getByRole("button", { name: "Lower action" });
+    const first = screen.getByRole("button", { name: "Keep lower" });
+    const upper = renderConfirmModal({ title: "Upper" });
+
+    opener.setAttribute("disabled", "");
+
+    const ignoreFocus = vi.fn<VoidFunction>();
+
+    const focus = vi.spyOn(first, "focus").mockImplementation(ignoreFocus);
+
+    try {
+      upper.unmount();
+
+      expect(screen.getByRole("button", { name: "Dismiss" })).toHaveFocus();
+    } finally {
+      focus.mockRestore();
+      lower.unmount();
+    }
+  });
+
   it("should preserve focus moved outside before the active confirmation closes", () => {
     render(<button type="button">Outside action</button>);
 
@@ -195,6 +244,19 @@ describe("ConfirmModal a11y", () => {
     fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
 
     expect(close).not.toHaveBeenCalled();
+  });
+
+  it("should trap Tab from a control inside the description", () => {
+    renderConfirmModal({
+      title: "Review",
+      description: <input aria-label="Comment" />,
+    });
+
+    const comment = screen.getByRole("textbox", { name: "Comment" });
+    comment.focus();
+    fireEvent.keyDown(comment, { key: "Tab", shiftKey: true });
+
+    expect(screen.getByRole("button", { name: "Dismiss" })).toHaveFocus();
   });
 
   it("should trap Tab focus within the dialog", () => {

@@ -79,10 +79,9 @@ or support for every framework/browser combination.
 - Enable **Dangerous confirmation** to focus Cancel on open. Other variants focus
   Confirm. The confirmation still supplies meaningful Radix `Title` and
   `Description`. See the [Radix Content API](https://www.radix-ui.com/primitives/docs/components/dialog#content).
-- Radix dismissals reject with `ModalDismissError`; the Cancel button resolves with
-  `{ confirmed: false, reason: "cancel" }`; confirmation resolves with
-  `{ confirmed: true }`. The launcher narrows these typed outcomes and retains
-  provider-bound handles rather than issuing deferred registry ID commands.
+- Escape and clicking outside resolve `{ confirmed: false, reason: "dismiss" }`.
+  Cancel resolves `{ confirmed: false, reason: "cancel" }`; Confirm resolves
+  `{ confirmed: true }`. Calling `handle.dismiss()` rejects with `ModalDismissError`.
 - There is no Radix Trigger because opening is imperative. The renderer remembers
   the opener, checks its eligibility and verifies that it actually receives focus.
   Otherwise it focuses the workspace heading, including when the opener is removed
@@ -101,9 +100,10 @@ References: [Next.js installation](https://nextjs.org/docs/app/getting-started/i
 
 Use **Start customer flow** to select Ada or Grace, edit the name, and confirm the
 change. Data passes through `createModal` input/result types without assertions.
-Only confirmation displays `Saved: …`; Cancel at any step stops the flow, while
-Escape rejects with a distinct dismissal outcome. Reopening starts from the same
-local customer data. This demo does not persist to a backend.
+Only Confirm displays `Saved: …`. Cancel or Escape at any step stops the flow.
+Escape rejects during selection and editing, but returns `reason: "dismiss"` at
+confirmation. Reopening uses the original customer data. Changes are not saved to
+a backend.
 
 `CustomerFlowLauncher` retains each public handle while awaiting it. Unmounting the
 launcher marks the run inactive before dismissing pending handles. Every await

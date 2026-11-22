@@ -170,7 +170,7 @@ async function verifyBrowser(url) {
   await expectDialogOutcome(page, "Cancelled: cancel", open);
   await open.click();
   await page.keyboard.press("Escape");
-  await expectDialogOutcome(page, "Dismissed: dismiss", open);
+  await expectDialogOutcome(page, "Cancelled: dismiss", open);
   await open.click();
   await dialog.getByRole("button", { name: "Dismiss retained handle" }).click();
   await expectDialogOutcome(page, "Dismissed: dismiss", open);

@@ -92,15 +92,31 @@ try {
   }
   await page.getByLabel("Policy").selectOption("default");
   await open.click();
+  await page.evaluate(() => {
+    document.addEventListener("focusin", function handleFocus(event) {
+      const target = event.target;
+      if (
+        target instanceof HTMLElement &&
+        target.closest('[role="dialog"]')?.textContent.includes("Neighbor")
+      ) {
+        document.removeEventListener("focusin", handleFocus);
+        // Send Escape before passive effects can activate the new Radix layer.
+        queueMicrotask(() => {
+          target.dispatchEvent(
+            new KeyboardEvent("keydown", {
+              key: "Escape",
+              bubbles: true,
+              cancelable: true,
+            }),
+          );
+        });
+      }
+    });
+  });
   await dialog.getByRole("button", { name: "Open neighbor" }).click();
   const neighbor = page.getByRole("dialog", { name: "Neighbor", exact: true });
-  await expect(neighbor).toBeVisible();
-  await expect(
-    neighbor.getByRole("button", { name: "Confirm", exact: true }),
-  ).toBeFocused();
-  await page.keyboard.press("Escape");
-  await expect(neighbor).toBeHidden();
   await expect(page.getByTestId("neighbor-outcome")).toHaveText("dismiss");
+  await expect(neighbor).toBeHidden();
   await expect(dialog).toBeVisible();
   await dialog.getByRole("button", { name: "Confirm", exact: true }).click();
   await expect(outcome).toHaveText("Confirmed");

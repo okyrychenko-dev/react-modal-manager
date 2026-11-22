@@ -6,7 +6,7 @@ import type {
   ConfirmModalResult,
   ModalComponentProps,
 } from "@okyrychenko-dev/react-modal-manager";
-import type { ReactNode } from "react";
+import type { KeyboardEvent, ReactNode } from "react";
 import type { InteractOutsideEvent } from "./PortableConfirmationContent.types";
 
 export function PortableConfirmationContent(
@@ -37,7 +37,9 @@ export function PortableConfirmationContent(
     initialFocus.current?.focus();
   }
 
-  function handleDismissInteraction(event: Event): void {
+  function handleDismissInteraction(
+    event: Pick<Event, "preventDefault">,
+  ): void {
     event.preventDefault();
 
     if (dismissible) {
@@ -54,6 +56,19 @@ export function PortableConfirmationContent(
     }
   }
 
+  function handleEscapeKeyDown(event: Event): void {
+    // Radix may still route Escape to the previous layer during activation.
+    // The focused content owns keyboard dismissal below.
+    event.preventDefault();
+  }
+
+  function handleKeyDown(event: KeyboardEvent<HTMLDivElement>): void {
+    if (event.key === "Escape") {
+      event.stopPropagation();
+      handleDismissInteraction(event);
+    }
+  }
+
   function handleCancel(): void {
     close({ confirmed: false, reason: "cancel" });
   }
@@ -65,7 +80,8 @@ export function PortableConfirmationContent(
   return (
     <PortableDialogSurface
       onOpenAutoFocus={handleOpenAutoFocus}
-      onEscapeKeyDown={handleDismissInteraction}
+      onEscapeKeyDown={handleEscapeKeyDown}
+      onKeyDown={handleKeyDown}
       onInteractOutside={handleInteractOutside}
     >
       <Dialog.Title>{title}</Dialog.Title>
